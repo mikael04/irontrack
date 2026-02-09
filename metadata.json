@@ -1,0 +1,5 @@
+{
+  "name": "IronTrack - CSV Workout Tracker",
+  "description": "A React web application to import workout CSVs, filter by week/day, and track set progress using local persistence.",
+  "requestFramePermissions": []
+}
