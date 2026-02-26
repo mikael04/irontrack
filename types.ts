@@ -23,12 +23,21 @@ export interface CSVRow {
   load_kg: string;
   rpe: string;
   rest: string;
+  concluido?: string;
+  series_feitas?: string;
+  anotacao?: string;
 }
 
+export type ImportMode = 'replace' | 'merge';
+
 export type WorkoutProgress = Record<string, boolean[]>;
+
+// Armazena anotações para cada exercício (workoutId -> texto da anotação)
+export type WorkoutAnnotations = Record<string, string>;
 
 export interface AppState {
   isInitialized: boolean;
   workouts: WorkoutRaw[];
   progress: WorkoutProgress;
+  annotations: WorkoutAnnotations;
 }

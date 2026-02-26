@@ -1,41 +1,60 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import { useWorkoutStorage } from './hooks/useWorkoutStorage';
 import { ImportScreen } from './components/ImportScreen';
 import { Dashboard } from './components/Dashboard';
 import { Activity } from 'lucide-react';
+import { WorkoutRaw, ImportMode } from './types';
 
 const App: React.FC = () => {
-  const { 
-    workouts, 
+  const [isReImport, setIsReImport] = useState(false);
+
+  const {
+    workouts,
     progress,
+    annotations,
     completionOrder,
     selection,
-    isLoaded, 
-    toggleSet, 
+    isLoaded,
+    toggleSet,
+    updateAnnotation,
     saveSelection,
-    importWorkouts, 
-    clearData 
+    importWorkouts,
+    exportWorkouts,
+    clearData
   } = useWorkoutStorage();
+
+  const handleReset = useCallback(() => {
+    setIsReImport(true);
+    clearData();
+  }, [clearData]);
+
+  const handleImport = useCallback((data: WorkoutRaw[], mode: ImportMode) => {
+    importWorkouts(data, mode);
+    setIsReImport(false);
+  }, [importWorkouts]);
 
   if (!isLoaded) {
     return (
-        <div className="min-h-screen bg-gym-900 flex items-center justify-center">
-            <Activity className="animate-spin text-gym-accent" size={40} />
-        </div>
+      <div className="min-h-screen bg-gym-900 flex items-center justify-center">
+        <Activity className="animate-spin text-gym-accent" size={40} />
+      </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-gym-900 text-slate-100">
       {workouts.length === 0 ? (
-        <ImportScreen onImport={importWorkouts} />
+        <ImportScreen onImport={handleImport} hasExistingWorkouts={isReImport} />
       ) : (
-        <Dashboard 
-          workouts={workouts} 
+        <Dashboard
+          workouts={workouts}
           progress={progress}
+          annotations={annotations}
           completionOrder={completionOrder}
           onToggleSet={toggleSet}
-          onReset={clearData}
+          onUpdateAnnotation={updateAnnotation}
+          onReset={handleReset}
+          onExport={exportWorkouts}
           initialSelection={selection}
           onSaveSelection={saveSelection}
         />

@@ -17,6 +17,9 @@ const transformHeader = (header: string): string => {
   if (h.includes('carga')) return 'load_kg';
   if (h.includes('rpe')) return 'rpe';
   if (h.includes('descanso')) return 'rest';
+  if (h.includes('concluido')) return 'concluido';
+  if (h.includes('serie') && h.includes('feita')) return 'series_feitas';
+  if (h.includes('anotacao')) return 'anotacao';
 
   return h.replace(/\s+/g, '_');
 };

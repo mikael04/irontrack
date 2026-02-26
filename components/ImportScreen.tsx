@@ -1,12 +1,13 @@
 import React, { useRef, useState } from 'react';
-import { Upload, FileSpreadsheet, AlertCircle, FileText, Clipboard } from 'lucide-react';
+import { Upload, FileSpreadsheet, AlertCircle, FileText, Clipboard, RefreshCw, Merge } from 'lucide-react';
 import { parseCSV } from '../utils/csv';
-import { WorkoutRaw } from '../types';
+import { WorkoutRaw, ImportMode } from '../types';
 import { Capacitor } from '@capacitor/core';
 import { FilePicker } from '@capawesome/capacitor-file-picker';
 
 interface ImportScreenProps {
-  onImport: (data: WorkoutRaw[]) => void;
+  onImport: (data: WorkoutRaw[], mode: ImportMode) => void;
+  hasExistingWorkouts: boolean;
 }
 
 // Helper: Decode Base64 to UTF-8 String (Vital for Portuguese accents)
@@ -24,15 +25,16 @@ const decodeBase64 = (base64: string): string => {
   }
 };
 
-export const ImportScreen: React.FC<ImportScreenProps> = ({ onImport }) => {
+export const ImportScreen: React.FC<ImportScreenProps> = ({ onImport, hasExistingWorkouts }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showPasteModal, setShowPasteModal] = useState(false);
   const [pasteContent, setPasteContent] = useState('');
+  const [pendingData, setPendingData] = useState<WorkoutRaw[] | null>(null);
+  const [showMergeModal, setShowMergeModal] = useState(false);
 
-  // -- LOGIC: Generic Processor --
   const processImport = async (input: File | string) => {
     setError(null);
     setIsProcessing(true);
@@ -40,13 +42,16 @@ export const ImportScreen: React.FC<ImportScreenProps> = ({ onImport }) => {
       const data = await parseCSV(input);
       if (data.length === 0) {
         setError('No valid exercises found. Please check your CSV headers (Semana, Dia, Exercício...).');
+      } else if (hasExistingWorkouts) {
+        setPendingData(data);
+        setShowMergeModal(true);
+        setIsProcessing(false);
       } else {
-        onImport(data);
+        onImport(data, 'replace');
       }
     } catch (err) {
       console.error(err);
       setError('Failed to parse CSV. Please use the Paste option if the file fails.');
-    } finally {
       setIsProcessing(false);
     }
   };
@@ -54,10 +59,10 @@ export const ImportScreen: React.FC<ImportScreenProps> = ({ onImport }) => {
   // -- LOGIC: Web / Standard File Input --
   const handleWebFile = (file: File) => {
     const isCsvExtension = file.name.toLowerCase().endsWith('.csv');
-    const isCsvMime = file.type.includes('csv') || file.type.includes('excel') || file.type === 'text/plain';
+    const isTxtExtension = file.name.toLowerCase().endsWith('.txt');
 
-    if (!isCsvExtension && !isCsvMime) {
-      setError('Please upload a valid CSV file.');
+    if (!isCsvExtension && !isTxtExtension) {
+      setError('Please upload a .csv or .txt file.');
       return;
     }
     processImport(file);
@@ -255,9 +260,85 @@ export const ImportScreen: React.FC<ImportScreenProps> = ({ onImport }) => {
           Import Data
           </button>
           </div>
-          </div>
-          </div>
-        )}
-        </div>
-  );
+           </div>
+           </div>
+         )}
+
+         {/* Merge/Replace Confirmation Modal */}
+         {showMergeModal && (
+           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+           <div className="bg-gym-900 border border-gym-700 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+           <div className="p-4 border-b border-gym-800">
+           <h3 className="font-bold text-white flex items-center gap-2">
+           <RefreshCw size={18} className="text-gym-accent" />
+           Import New Training Plan
+           </h3>
+           </div>
+           <div className="p-6">
+           <p className="text-sm text-gym-300 mb-6">
+           You already have a training plan loaded. How would you like to proceed?
+           </p>
+           <div className="space-y-3">
+           <button
+           onClick={() => {
+             setShowMergeModal(false);
+             if (pendingData) {
+               onImport(pendingData, 'replace');
+               setPendingData(null);
+             }
+           }}
+           className="w-full p-4 rounded-xl border border-gym-700 hover:border-gym-accent hover:bg-gym-accent/5 transition-all text-left group"
+           >
+           <div className="flex items-start gap-3">
+           <div className="bg-gym-800 p-2 rounded-lg group-hover:bg-gym-accent/20 transition-colors">
+           <RefreshCw size={18} className="text-gym-400 group-hover:text-gym-accent" />
+           </div>
+           <div>
+           <div className="font-semibold text-white mb-1">Replace All</div>
+           <div className="text-xs text-gym-500">
+           Clear current data and use the new file. All progress and annotations will be lost.
+           </div>
+           </div>
+           </div>
+           </button>
+
+           <button
+           onClick={() => {
+             setShowMergeModal(false);
+             if (pendingData) {
+               onImport(pendingData, 'merge');
+               setPendingData(null);
+             }
+           }}
+           className="w-full p-4 rounded-xl border border-gym-700 hover:border-gym-accent hover:bg-gym-accent/5 transition-all text-left group"
+           >
+           <div className="flex items-start gap-3">
+           <div className="bg-gym-800 p-2 rounded-lg group-hover:bg-gym-accent/20 transition-colors">
+           <Merge size={18} className="text-gym-400 group-hover:text-gym-accent" />
+           </div>
+           <div>
+           <div className="font-semibold text-white mb-1">Keep Progress</div>
+           <div className="text-xs text-gym-500">
+           Merge new plan with your existing progress and annotations. Matching exercises will keep their data.
+           </div>
+           </div>
+           </div>
+           </button>
+           </div>
+
+           <button
+           onClick={() => {
+             setShowMergeModal(false);
+             setPendingData(null);
+           }}
+           className="mt-6 w-full px-4 py-2 rounded-lg text-gym-400 hover:text-white hover:bg-gym-800 transition-colors"
+           >
+           Cancel
+           </button>
+           </div>
+           </div>
+           </div>
+         )}
+         </div>
+   );
 };

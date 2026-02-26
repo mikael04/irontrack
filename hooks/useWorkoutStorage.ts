@@ -1,11 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
-import { WorkoutRaw, WorkoutProgress } from '../types';
+import { WorkoutRaw, WorkoutProgress, WorkoutAnnotations, ImportMode } from '../types';
 import { Preferences } from '@capacitor/preferences';
+import { generateExportData, saveCsvFile, ExportData } from '../utils/exportCsv';
 
 const STORAGE_KEY_DATA = 'irontrack_data';
 const STORAGE_KEY_PROGRESS = 'irontrack_progress';
 const STORAGE_KEY_ORDER = 'irontrack_completion_order';
 const STORAGE_KEY_SELECTION = 'irontrack_selection';
+const STORAGE_KEY_ANNOTATIONS = 'irontrack_annotations';
 
 const setData = async (key: string, value: any) => {
   await Preferences.set({ key, value: JSON.stringify(value) });
@@ -28,6 +30,7 @@ interface SelectionState {
 export const useWorkoutStorage = () => {
   const [workouts, setWorkouts] = useState<WorkoutRaw[]>([]);
   const [progress, setProgress] = useState<WorkoutProgress>({});
+  const [annotations, setAnnotations] = useState<WorkoutAnnotations>({});
   const [completionOrder, setCompletionOrder] = useState<string[]>([]);
   const [selection, setSelection] = useState<SelectionState>({ week: null, day: null });
   const [isLoaded, setIsLoaded] = useState(false);
@@ -37,6 +40,7 @@ export const useWorkoutStorage = () => {
       try {
         const storedData = await getData(STORAGE_KEY_DATA);
         const storedProgress = await getData(STORAGE_KEY_PROGRESS);
+        const storedAnnotations = await getData(STORAGE_KEY_ANNOTATIONS);
         const storedOrder = await getData(STORAGE_KEY_ORDER);
         const storedSelection = await getData(STORAGE_KEY_SELECTION);
 
@@ -45,6 +49,9 @@ export const useWorkoutStorage = () => {
         }
         if (storedProgress) {
           setProgress(storedProgress);
+        }
+        if (storedAnnotations) {
+          setAnnotations(storedAnnotations);
         }
         if (storedOrder) {
           setCompletionOrder(storedOrder);
@@ -67,17 +74,17 @@ export const useWorkoutStorage = () => {
       const currentSets = prev[workoutId] || Array(totalSets).fill(false);
       const newSets = [...currentSets];
       while (newSets.length < totalSets) newSets.push(false);
-      
+
       newSets[setIndex] = !newSets[setIndex];
-      
+
       const newProgress = { ...prev, [workoutId]: newSets };
       setData(STORAGE_KEY_PROGRESS, newProgress);
 
       const isComplete = newSets.every(Boolean) && newSets.length === totalSets;
-      
+
       setCompletionOrder(prevOrder => {
         let newOrder = [...prevOrder];
-        
+
         if (isComplete) {
           if (!newOrder.includes(workoutId)) {
             newOrder.push(workoutId);
@@ -85,7 +92,7 @@ export const useWorkoutStorage = () => {
         } else {
           newOrder = newOrder.filter(id => id !== workoutId);
         }
-        
+
         setData(STORAGE_KEY_ORDER, newOrder);
         return newOrder;
       });
@@ -100,26 +107,75 @@ export const useWorkoutStorage = () => {
     setData(STORAGE_KEY_SELECTION, newSelection);
   }, []);
 
-  const importWorkouts = useCallback(async (newWorkouts: WorkoutRaw[]) => {
-    await removeData(STORAGE_KEY_DATA);
-    await removeData(STORAGE_KEY_PROGRESS);
-    await removeData(STORAGE_KEY_ORDER);
-    await removeData(STORAGE_KEY_SELECTION);
-    
-    setWorkouts(newWorkouts);
-    setProgress({});
-    setCompletionOrder([]);
-    setSelection({ week: null, day: null });
-    await setData(STORAGE_KEY_DATA, newWorkouts);
+  const updateAnnotation = useCallback((workoutId: string, annotation: string) => {
+    setAnnotations((prev) => {
+      const newAnnotations = { ...prev, [workoutId]: annotation };
+      setData(STORAGE_KEY_ANNOTATIONS, newAnnotations);
+      return newAnnotations;
+    });
   }, []);
+
+  const importWorkouts = useCallback(async (newWorkouts: WorkoutRaw[], mode: ImportMode = 'replace') => {
+    if (mode === 'replace') {
+      await removeData(STORAGE_KEY_DATA);
+      await removeData(STORAGE_KEY_PROGRESS);
+      await removeData(STORAGE_KEY_ANNOTATIONS);
+      await removeData(STORAGE_KEY_ORDER);
+      await removeData(STORAGE_KEY_SELECTION);
+
+      setWorkouts(newWorkouts);
+      setProgress({});
+      setAnnotations({});
+      setCompletionOrder([]);
+      setSelection({ week: null, day: null });
+      await setData(STORAGE_KEY_DATA, newWorkouts);
+    } else {
+      const mergedProgress: WorkoutProgress = { ...progress };
+      const mergedAnnotations: WorkoutAnnotations = { ...annotations };
+
+      newWorkouts.forEach(newWorkout => {
+        const existingWorkout = workouts.find(
+          w => w.week === newWorkout.week &&
+               w.day === newWorkout.day &&
+               w.exercise === newWorkout.exercise
+        );
+
+        if (existingWorkout) {
+          mergedProgress[newWorkout.id] = progress[existingWorkout.id] || [];
+          mergedAnnotations[newWorkout.id] = annotations[existingWorkout.id] || '';
+        }
+      });
+
+      setWorkouts(newWorkouts);
+      setProgress(mergedProgress);
+      setAnnotations(mergedAnnotations);
+      await setData(STORAGE_KEY_DATA, newWorkouts);
+      await setData(STORAGE_KEY_PROGRESS, mergedProgress);
+      await setData(STORAGE_KEY_ANNOTATIONS, mergedAnnotations);
+    }
+  }, [workouts, progress, annotations]);
+
+  const exportWorkouts = useCallback(async (): Promise<string> => {
+    const exportData: ExportData = {
+      workouts,
+      progress,
+      annotations,
+    };
+
+    const csvContent = generateExportData(exportData);
+    const filePath = await saveCsvFile(csvContent);
+    return filePath;
+  }, [workouts, progress, annotations]);
 
   const clearData = useCallback(async () => {
     await removeData(STORAGE_KEY_DATA);
     await removeData(STORAGE_KEY_PROGRESS);
+    await removeData(STORAGE_KEY_ANNOTATIONS);
     await removeData(STORAGE_KEY_ORDER);
     await removeData(STORAGE_KEY_SELECTION);
     setWorkouts([]);
     setProgress({});
+    setAnnotations({});
     setCompletionOrder([]);
     setSelection({ week: null, day: null });
   }, []);
@@ -127,12 +183,15 @@ export const useWorkoutStorage = () => {
   return {
     workouts,
     progress,
+    annotations,
     completionOrder,
     selection,
     isLoaded,
     toggleSet,
+    updateAnnotation,
     saveSelection,
     importWorkouts,
+    exportWorkouts,
     clearData
   };
 };
