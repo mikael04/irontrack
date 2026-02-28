@@ -1,7 +1,8 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { WorkoutRaw, WorkoutProgress, WorkoutAnnotations } from '../types';
 import { ExerciseCard } from './ExerciseCard';
-import { Settings, Trophy, CheckCircle, Download, Upload, X } from 'lucide-react';
+import { Settings, Trophy, CheckCircle, Download, Upload, X, Globe } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface DashboardProps {
   workouts: WorkoutRaw[];
@@ -32,6 +33,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [activeTimerWorkoutId, setActiveTimerWorkoutId] = useState<string | null>(null);
   const [timerStartTime, setTimerStartTime] = useState<number | null>(null);
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
+  const { t, i18n } = useTranslation();
+
+  const toggleLanguage = () => {
+    const newLang = i18n.language === 'en' ? 'pt-br' : 'en';
+    i18n.changeLanguage(newLang);
+  };
 
   const weeks = useMemo(() => {
     const w = Array.from(new Set(workouts.map(w => w.week))).sort((a: number, b: number) => a - b);
@@ -141,8 +148,42 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   const handleSetToggle = (workoutId: string, setIndex: number, totalSets: number) => {
     onToggleSet(workoutId, setIndex, totalSets);
-    setTimerStartTime(Date.now());
-    setActiveTimerWorkoutId(workoutId);
+
+    // Check if the set we just toggled is becoming checked or unchecked
+    // In Dashbard's logic, toggleSet simply inverts the boolean
+    // The current progress we have in the render cycle is before the toggle, so we deduce:
+    const currentProgress = progress[workoutId] || [];
+    const isCurrentlyChecked = currentProgress[setIndex] === true;
+
+    if (!isCurrentlyChecked) {
+      // It's being checked, meaning a rest period is starting
+      const start = Date.now();
+      setTimerStartTime(start);
+      setActiveTimerWorkoutId(workoutId);
+
+      const workout = currentDayWorkouts.find(w => w.id === workoutId);
+      if (workout) {
+        const completedCount = currentProgress.filter(Boolean).length;
+        // Since we are checking now, we are in the rest period after completing `completedCount + 1` sets
+        const currentSeries = completedCount + 1;
+
+        import('../utils/notification').then(({ NotificationTimer }) => {
+          NotificationTimer.start({
+            title: `IronTrack - ${t('exercise_notification')}: ${workout.exercise} ${currentSeries}/${workout.total_sets}`,
+            startTime: start
+          }).catch(e => console.error("Notification Plugin Error:", e));
+        });
+      }
+    } else {
+      // A set was unchecked, or we can just stop the timer if it belonged to this exact one
+      if (activeTimerWorkoutId === workoutId) {
+        setTimerStartTime(null);
+        setActiveTimerWorkoutId(null);
+        import('../utils/notification').then(({ NotificationTimer }) => {
+          NotificationTimer.stop();
+        });
+      }
+    }
   };
 
   const progressStats = useMemo(() => {
@@ -177,7 +218,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               className="text-xs text-gym-500 hover:text-white flex items-center space-x-1"
             >
               <Settings size={14} />
-              <span>Settings</span>
+              <span>{t('settings')}</span>
             </button>
           </div>
 
@@ -195,7 +236,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     }
                         `}
                 >
-                  Week {week}
+                  {t('week')} {week}
                 </button>
               ))}
             </div>
@@ -213,7 +254,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     }
                         `}
                 >
-                  Day {day}
+                  {t('day')} {day}
                 </button>
               ))}
             </div>
@@ -233,22 +274,22 @@ export const Dashboard: React.FC<DashboardProps> = ({
         <div className="flex justify-between items-end mb-6">
           <div>
             <h2 className="text-2xl font-bold text-white">
-              Day {selectedDay}
+              {t('day')} {selectedDay}
             </h2>
             <p className="text-gym-400 text-sm">
-              {currentDayWorkouts.length > 0 ? currentDayWorkouts[0].focus : 'Rest Day'}
+              {currentDayWorkouts.length > 0 ? currentDayWorkouts[0].focus : t('rest_day')}
             </p>
           </div>
           <div className="text-right">
             <span className="text-3xl font-black text-white">{progressPercentage}%</span>
-            <p className="text-xs text-gym-500 uppercase tracking-wide">Daily Goal</p>
+            <p className="text-xs text-gym-500 uppercase tracking-wide">{t('daily_goal')}</p>
           </div>
         </div>
 
         <div className="space-y-4">
           {activeWorkouts.length === 0 && finishedWorkouts.length === 0 && (
             <div className="text-center py-20 bg-gym-800/50 rounded-xl border border-dashed border-gym-700">
-              <p className="text-gym-500">No exercises found for this day.</p>
+              <p className="text-gym-500">{t('no_exercises_found')}</p>
             </div>
           )}
 
@@ -270,7 +311,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             <div className="pt-8 pb-4">
               <div className="flex items-center space-x-3 text-gym-500 mb-4">
                 <CheckCircle size={20} />
-                <h3 className="font-bold text-sm uppercase tracking-wider">Completed Exercises</h3>
+                <h3 className="font-bold text-sm uppercase tracking-wider">{t('completed_exercises')}</h3>
                 <div className="h-px bg-gym-800 flex-grow"></div>
               </div>
 
@@ -290,75 +331,90 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 ))}
               </div>
             </div>
-           )}
-         </div>
-       </main>
+          )}
+        </div>
+      </main>
 
-       {/* Settings Menu Modal */}
-       {showSettingsMenu && (
-         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-         <div className="bg-gym-900 border border-gym-700 w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-         <div className="p-4 border-b border-gym-800 flex justify-between items-center">
-         <h3 className="font-bold text-white">Settings</h3>
-         <button
-           onClick={() => setShowSettingsMenu(false)}
-           className="text-gym-500 hover:text-white"
-         >
-           <X size={20} />
-         </button>
-         </div>
-         <div className="p-4 space-y-3">
-         <button
-           onClick={async () => {
-             setShowSettingsMenu(false);
-             try {
-               const filePath = await onExport();
-               alert(`Training exported successfully!\n\nFile saved to:\n${filePath}\n\nYou can find it in your file manager app.`);
-             } catch (error: any) {
-               console.error('Export error:', error);
-               alert(`Failed to export training.\n\nError: ${error?.message || 'Unknown error'}\n\nPlease check app permissions and try again.`);
-             }
-           }}
-           className="w-full p-4 rounded-xl border border-gym-700 hover:border-gym-accent hover:bg-gym-accent/5 transition-all text-left group"
-         >
-           <div className="flex items-start gap-3">
-           <div className="bg-gym-800 p-2 rounded-lg group-hover:bg-gym-accent/20 transition-colors">
-           <Download size={18} className="text-gym-400 group-hover:text-gym-accent" />
-           </div>
-           <div>
-           <div className="font-semibold text-white mb-1">Export Training</div>
-           <div className="text-xs text-gym-500">
-           Save your training plan with progress and annotations to a CSV file
-           </div>
-           </div>
-           </div>
-         </button>
+      {/* Settings Menu Modal */}
+      {showSettingsMenu && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="bg-gym-900 border border-gym-700 w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-4 border-b border-gym-800 flex justify-between items-center">
+              <h3 className="font-bold text-white">{t('settings')}</h3>
+              <button
+                onClick={() => setShowSettingsMenu(false)}
+                className="text-gym-500 hover:text-white"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-4 space-y-3">
+              <button
+                onClick={toggleLanguage}
+                className="w-full p-4 rounded-xl border border-gym-700 hover:border-gym-accent hover:bg-gym-accent/5 transition-all text-left flex items-center justify-between group"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="bg-gym-800 p-2 rounded-lg group-hover:bg-gym-accent/20 transition-colors">
+                    <Globe size={18} className="text-gym-400 group-hover:text-gym-accent" />
+                  </div>
+                  <div className="font-semibold text-white">{t('language')}</div>
+                </div>
+                <div className="bg-gym-800 px-3 py-1 rounded-md text-sm font-bold text-gym-400 group-hover:text-gym-accent uppercase transition-colors">
+                  {i18n.language}
+                </div>
+              </button>
 
-         <button
-           onClick={() => {
-             setShowSettingsMenu(false);
-             if (confirm('Are you sure you want to clear all data and import a new file?')) {
-               onReset();
-             }
-           }}
-           className="w-full p-4 rounded-xl border border-gym-700 hover:border-gym-accent hover:bg-gym-accent/5 transition-all text-left group"
-         >
-           <div className="flex items-start gap-3">
-           <div className="bg-gym-800 p-2 rounded-lg group-hover:bg-gym-accent/20 transition-colors">
-           <Upload size={18} className="text-gym-400 group-hover:text-gym-accent" />
-           </div>
-           <div>
-           <div className="font-semibold text-white mb-1">Import New Training</div>
-           <div className="text-xs text-gym-500">
-           Load a new training plan from a CSV file (clears existing data)
-           </div>
-           </div>
-           </div>
-         </button>
-         </div>
-         </div>
-         </div>
-       )}
-     </div>
-   );
+              <button
+                onClick={async () => {
+                  setShowSettingsMenu(false);
+                  try {
+                    const filePath = await onExport();
+                    alert(t('export_success', { filePath }));
+                  } catch (error: any) {
+                    console.error('Export error:', error);
+                    alert(t('export_failed', { error: error?.message || 'Unknown error' }));
+                  }
+                }}
+                className="w-full p-4 rounded-xl border border-gym-700 hover:border-gym-accent hover:bg-gym-accent/5 transition-all text-left group"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="bg-gym-800 p-2 rounded-lg group-hover:bg-gym-accent/20 transition-colors">
+                    <Download size={18} className="text-gym-400 group-hover:text-gym-accent" />
+                  </div>
+                  <div>
+                    <div className="font-semibold text-white mb-1">{t('export_training')}</div>
+                    <div className="text-xs text-gym-500">
+                      {t('export_training_desc')}
+                    </div>
+                  </div>
+                </div>
+              </button>
+
+              <button
+                onClick={() => {
+                  setShowSettingsMenu(false);
+                  if (confirm(t('confirm_import'))) {
+                    onReset();
+                  }
+                }}
+                className="w-full p-4 rounded-xl border border-gym-700 hover:border-gym-accent hover:bg-gym-accent/5 transition-all text-left group"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="bg-gym-800 p-2 rounded-lg group-hover:bg-gym-accent/20 transition-colors">
+                    <Upload size={18} className="text-gym-400 group-hover:text-gym-accent" />
+                  </div>
+                  <div>
+                    <div className="font-semibold text-white mb-1">{t('import_new_training')}</div>
+                    <div className="text-xs text-gym-500">
+                      {t('import_new_training_desc')}
+                    </div>
+                  </div>
+                </div>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 };

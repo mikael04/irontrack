@@ -16,10 +16,12 @@
     "@capacitor/filesystem": "^6.0.4",
     "@capacitor/preferences": "^6.0.0",
     "@capawesome/capacitor-file-picker": "^6.0.0",
+    "i18next": "^25.8.13",
     "lucide-react": "^0.344.0",
     "papaparse": "^5.4.1",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "react-i18next": "^16.5.4"
   },
   "devDependencies": {
     "@capacitor/cli": "^6.0.0",

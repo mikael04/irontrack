@@ -1,11 +1,16 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useWorkoutStorage } from './hooks/useWorkoutStorage';
 import { ImportScreen } from './components/ImportScreen';
 import { Dashboard } from './components/Dashboard';
 import { Activity } from 'lucide-react';
 import { WorkoutRaw, ImportMode } from './types';
+import { NotificationTimer } from './utils/notification';
 
 const App: React.FC = () => {
+  useEffect(() => {
+    NotificationTimer.requestPermissions().catch(e => console.error('Notification permission error:', e));
+  }, []);
+
   const [isReImport, setIsReImport] = useState(false);
 
   const {

@@ -1,12 +1,5 @@
 ## Features to be implemented
 
-### Working Notification
-
-Show a chronometer notification when a set is completed:
-- Display elapsed rest time counting up (0:00, 0:01, 0:02...)
-- Visual only, no sound or vibration
-- Auto-hide when next set is tapped
-- Click notification to open app
 
 ## Implemented features
 
@@ -31,8 +24,14 @@ Right now it reads if the file is exported as csv but renamed to ".txt", the app
 - Smart import with merge/replace option when re-importing training plans
 - Preserves progress and annotations for matching exercises when merging
 
-## Implemented features
-
 ### Add an annotation to exercises
 
 Below each exercise, this should be an empty text input that user could use to write.
+
+### Working Notification
+
+Show a notification when the app is open:
+- Display the current (the top one) exercise name
+- Display the current (the top one) elapsed rest time counting up (0:00, 0:01, 0:02...) sync with the cronometer from the app (if the cronometer is not active, just show 0:00)
+- Visual only, no sound or vibration
+- Click notification to open app

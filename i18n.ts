@@ -1,0 +1,92 @@
+import i18n from 'i18next';
+import { initReactI18next } from 'react-i18next';
+
+const resources = {
+    en: {
+        translation: {
+            "settings": "Settings",
+            "week": "Week",
+            "day": "Day",
+            "rest_day": "Rest Day",
+            "daily_goal": "Daily Goal",
+            "no_exercises_found": "No exercises found for this day.",
+            "completed_exercises": "Completed Exercises",
+            "sets": "Sets",
+            "load": "Load",
+            "rpe": "RPE",
+            "reps": "Reps",
+            "rest": "Rest",
+            "export_training": "Export Training",
+            "export_training_desc": "Save your training plan with progress and annotations to a CSV file",
+            "import_new_training": "Import New Training",
+            "import_new_training_desc": "Load a new training plan from a CSV file (clears existing data)",
+            "export_success": "Training exported successfully!\n\nFile saved to:\n{{filePath}}\n\nYou can find it in your file manager app.",
+            "export_failed": "Failed to export training.\n\nError: {{error}}\n\nPlease check app permissions and try again.",
+            "confirm_import": "Are you sure you want to clear all data and import a new file?",
+            "annotation": "Log",
+            "completed": "Completed",
+            "save": "Save",
+            "cancel": "Cancel",
+            "import_title": "Import Training",
+            "import_desc": "Select a CSV file to load your training plan.",
+            "import_button": "Select CSV File",
+            "import_error": "Error importing file",
+            "replace_training": "Replace Training",
+            "merge_training": "Merge Training",
+            "replace_desc": "Clear all current data and load the new file",
+            "merge_desc": "Update matching exercises while keeping progress and annotations",
+            "language": "Language",
+            "exercise_notification": "Exercise"
+        }
+    },
+    'pt-BR': {
+        translation: {
+            "settings": "Configurações",
+            "week": "Semana",
+            "day": "Dia",
+            "rest_day": "Dia de Descanso",
+            "daily_goal": "Meta Diária",
+            "no_exercises_found": "Nenhum exercício encontrado para este dia.",
+            "completed_exercises": "Exercícios Concluídos",
+            "sets": "Séries",
+            "load": "Carga",
+            "rpe": "RPE",
+            "reps": "Reps",
+            "rest": "Descanso",
+            "export_training": "Exportar Treino",
+            "export_training_desc": "Salve seu plano de treino com progresso e anotações num arquivo CSV",
+            "import_new_training": "Importar Novo Treino",
+            "import_new_training_desc": "Carregue um novo plano de treino de um arquivo CSV (limpa os dados atuais)",
+            "export_success": "Treino exportado com sucesso!\n\nArquivo salvo em:\n{{filePath}}\n\nVocê pode encontrá-lo no seu app gerenciador de arquivos.",
+            "export_failed": "Falha ao exportar treino.\n\nErro: {{error}}\n\nPor favor, verifique as permissões do app e tente novamente.",
+            "confirm_import": "Tem certeza que deseja limpar todos os dados e importar um novo arquivo?",
+            "annotation": "Anotação",
+            "completed": "Concluído",
+            "save": "Salvar",
+            "cancel": "Cancelar",
+            "import_title": "Importar Treino",
+            "import_desc": "Selecione um arquivo CSV para carregar seu plano de treino.",
+            "import_button": "Selecionar Arquivo CSV",
+            "import_error": "Erro ao importar arquivo",
+            "replace_training": "Substituir Treino",
+            "merge_training": "Mesclar Treino",
+            "replace_desc": "Limpar todos os dados atuais e carregar o novo arquivo",
+            "merge_desc": "Atualizar exercícios correspondentes mantendo progresso e anotações",
+            "language": "Idioma",
+            "exercise_notification": "Exercício"
+        }
+    }
+};
+
+i18n
+    .use(initReactI18next)
+    .init({
+        resources,
+        lng: "pt-BR", // default language
+        fallbackLng: "en",
+        interpolation: {
+            escapeValue: false
+        }
+    });
+
+export default i18n;
