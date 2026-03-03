@@ -7,6 +7,16 @@ export interface ExportData {
   annotations: WorkoutAnnotations;
 }
 
+const TSV_DELIMITER = '\t';
+
+const escapeTsvField = (value: string): string => {
+  const escaped = value.replace(/"/g, '""');
+  const requiresQuoting =
+    escaped.includes(TSV_DELIMITER) || escaped.includes('\n') || escaped.includes('"');
+
+  return requiresQuoting ? `"${escaped}"` : escaped;
+};
+
 const getCompletedSets = (workoutId: string, progress: WorkoutProgress, totalSets: number): string => {
   const sets = progress[workoutId] || [];
   const completed = sets.filter(Boolean).length;
@@ -29,6 +39,7 @@ export const generateExportData = (data: ExportData): string => {
     'Exercício',
     'Séries',
     'Repetições',
+    'Prep',
     'Carga %',
     'Carga (kg)',
     'RPE',
@@ -50,6 +61,7 @@ export const generateExportData = (data: ExportData): string => {
       exercise: workout.exercise,
       sets: workout.total_sets.toString(),
       reps: workout.reps,
+      prep: workout.prep,
       load_pct: workout.load_pct,
       load_kg: workout.load_kg,
       rpe: workout.rpe,
@@ -60,32 +72,36 @@ export const generateExportData = (data: ExportData): string => {
     };
   });
 
-  const csvContent = [
-    headers.join(','),
+  const tsvContent = [
+    headers.join(TSV_DELIMITER),
     ...rows.map(row => [
       row.week,
       row.day,
       row.focus,
-      `"${row.exercise}"`,
+      row.exercise,
       row.sets,
       row.reps,
+      row.prep || '-',
       row.load_pct,
       row.load_kg,
       row.rpe,
       row.rest,
       row.concluido || 'Não',
       row.series_feitas || `0/${row.sets}`,
-      `"${(row.anotacao || '').replace(/"/g, '""')}"`,
-    ].join(','))
+      row.anotacao || '',
+    ].map(escapeTsvField).join(TSV_DELIMITER))
   ].join('\n');
 
-  return csvContent;
+  return tsvContent;
 };
 
-export const saveCsvFile = async (csvContent: string, fileName: string = 'irontrack_export.csv'): Promise<string> => {
+export const saveCsvFile = async (csvContent: string, fileName: string = 'irontrack_export.tsv'): Promise<string> => {
   try {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
-    const finalFileName = `irontrack_${timestamp}.csv`;
+    const normalizedFileName = fileName.endsWith('.tsv') ? fileName : `${fileName}.tsv`;
+    const finalFileName = normalizedFileName === 'irontrack_export.tsv'
+      ? `irontrack_${timestamp}.tsv`
+      : normalizedFileName;
 
     // Check and request permissions
     const permissions = await Filesystem.checkPermissions();
@@ -110,10 +126,10 @@ export const saveCsvFile = async (csvContent: string, fileName: string = 'irontr
       directory: Directory.Documents,
     });
 
-    console.log('File saved to:', uriResult.uri);
+    console.log('TSV file saved to:', uriResult.uri);
     return uriResult.uri;
   } catch (error) {
-    console.error('Failed to save CSV file:', error);
+    console.error('Failed to save TSV file:', error);
     throw error;
   }
 };

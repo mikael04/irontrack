@@ -1,8 +1,8 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { WorkoutRaw } from '../types';
 import { SetIndicator } from './SetIndicator';
 import { RestTimer } from './RestTimer';
-import { Dumbbell, Clock, Activity, BarChart2, CheckCircle2, MessageSquare } from 'lucide-react';
+import { Dumbbell, Clock, Activity, BarChart2, CheckCircle2, MessageSquare, ListChecks } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 interface ExerciseCardProps {
@@ -100,6 +100,18 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
           <div className="flex flex-col">
             <span className="text-xs text-gym-500 uppercase">{t('rest')}</span>
             <span className="font-mono font-medium text-sm text-white">{workout.rest}</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="mb-4 p-3 bg-gym-900/50 rounded-lg border border-gym-700/50">
+        <div className="flex items-center space-x-2 text-gym-300">
+          <div className="p-1.5 bg-gym-800 rounded text-emerald-500">
+            <ListChecks size={14} />
+          </div>
+          <div className="flex flex-col">
+            <span className="text-xs text-gym-500 uppercase">{t('prep')}</span>
+            <span className="font-mono font-medium text-sm text-white">{workout.prep || '-'}</span>
           </div>
         </div>
       </div>

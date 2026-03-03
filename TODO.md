@@ -1,7 +1,31 @@
-## Features to be implemented
+# General rules
+
+- When Implementing features, always build, run gradlew to generate new apk release.
+`npm run build && npx cap sync android `
+- After building the new release, send it to the phone via adb, and install it.
+`cd android && ./gradlew assembleRelease && cd ..`
+
+# Bugfix
+
+## Persistant notification
+
+Now the notification keeps even after I finish 
+
+# Features to be implemented
+
+## Major
+
+Change the UI
+
+## Minor
+### Add the prep column
+
+The prep column should appear bellow the lines "load, RPE, REPS and REST".
 
 
-## Implemented features
+# Implemented features
+
+## Major
 
 ### Add an export function
 
@@ -23,6 +47,18 @@ Right now it reads if the file is exported as csv but renamed to ".txt", the app
 - File validation simplified to check extension only
 - Smart import with merge/replace option when re-importing training plans
 - Preserves progress and annotations for matching exercises when merging
+
+
+## Minor
+
+### Days and Weeks dones
+
+If the day has all exercises marked as done, the day is marked as done and goes to the end of the line.
+This works for weeks too with the same behavior.
+
+### Fix week change always starts on first day
+
+When changing weeks, it always starts showing the first day.
 
 ### Add an annotation to exercises
 

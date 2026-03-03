@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { WorkoutRaw, WorkoutProgress, WorkoutAnnotations } from '../types';
 import { ExerciseCard } from './ExerciseCard';
 import { Settings, Trophy, CheckCircle, Download, Upload, X, Globe } from 'lucide-react';
@@ -40,12 +40,43 @@ export const Dashboard: React.FC<DashboardProps> = ({
     i18n.changeLanguage(newLang);
   };
 
-  const weeks = useMemo(() => {
+  const baseWeeks = useMemo(() => {
     const w = Array.from(new Set(workouts.map(w => w.week))).sort((a: number, b: number) => a - b);
     return w;
   }, [workouts]);
 
-  const firstWeek = weeks[0] || 1;
+  const workoutDoneMap = useMemo(() => {
+    const doneMap = new Map<string, boolean>();
+
+    workouts.forEach((workout) => {
+      const workoutProgress = progress[workout.id] || [];
+      const isDone = workoutProgress.length >= workout.total_sets && workoutProgress.every(Boolean);
+      doneMap.set(workout.id, isDone);
+    });
+
+    return doneMap;
+  }, [workouts, progress]);
+
+  const weekCompletion = useMemo(() => {
+    const completionByWeek: Record<number, boolean> = {};
+
+    baseWeeks.forEach((week) => {
+      const workoutsInWeek = workouts.filter((workout) => workout.week === week);
+      completionByWeek[week] =
+        workoutsInWeek.length > 0 &&
+        workoutsInWeek.every((workout) => workoutDoneMap.get(workout.id) === true);
+    });
+
+    return completionByWeek;
+  }, [baseWeeks, workouts, workoutDoneMap]);
+
+  const weeks = useMemo(() => {
+    const pendingWeeks = baseWeeks.filter((week) => !weekCompletion[week]);
+    const completedWeeks = baseWeeks.filter((week) => weekCompletion[week]);
+    return [...pendingWeeks, ...completedWeeks];
+  }, [baseWeeks, weekCompletion]);
+
+  const firstWeek = baseWeeks[0] || 1;
   const firstDays = useMemo(() => {
     return Array.from(new Set(
       workouts
@@ -56,14 +87,15 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const firstDay = firstDays[0] || 'A';
 
   const [selectedWeek, setSelectedWeek] = useState<number>(
-    initialSelection.week && weeks.includes(initialSelection.week) ? initialSelection.week : firstWeek
+    initialSelection.week && baseWeeks.includes(initialSelection.week) ? initialSelection.week : firstWeek
   );
   const [selectedDay, setSelectedDay] = useState<string>(initialSelection.day || firstDay);
 
   const isInitializing = useRef(true);
   const lastSavedSelection = useRef<{ week: number; day: string } | null>(null);
+  const completionTransitionRef = useRef<{ week: number; day: string; dayDone: boolean; weekDone: boolean } | null>(null);
 
-  const days = useMemo(() => {
+  const baseDays = useMemo(() => {
     return Array.from(new Set(
       workouts
         .filter(w => w.week === selectedWeek)
@@ -71,10 +103,50 @@ export const Dashboard: React.FC<DashboardProps> = ({
     )).sort();
   }, [workouts, selectedWeek]);
 
+  const dayCompletion = useMemo(() => {
+    const completionByDay: Record<string, boolean> = {};
+
+    baseDays.forEach((day) => {
+      const workoutsInDay = workouts.filter(
+        (workout) => workout.week === selectedWeek && workout.day === day
+      );
+      completionByDay[day] =
+        workoutsInDay.length > 0 &&
+        workoutsInDay.every((workout) => workoutDoneMap.get(workout.id) === true);
+    });
+
+    return completionByDay;
+  }, [baseDays, workouts, selectedWeek, workoutDoneMap]);
+
+  const days = useMemo(() => {
+    const pendingDays = baseDays.filter((day) => !dayCompletion[day]);
+    const completedDays = baseDays.filter((day) => dayCompletion[day]);
+    return [...pendingDays, ...completedDays];
+  }, [baseDays, dayCompletion]);
+
+  const handleWeekSelect = useCallback((week: number) => {
+    setSelectedWeek((previousWeek) => {
+      if (previousWeek === week) {
+        return previousWeek;
+      }
+
+      const daysInWeek = Array.from(
+        new Set(
+          workouts
+            .filter((workout) => workout.week === week)
+            .map((workout) => workout.day)
+        )
+      ).sort();
+
+      setSelectedDay(daysInWeek[0] || 'A');
+      return week;
+    });
+  }, [workouts]);
+
   useEffect(() => {
     if (isInitializing.current) {
       if (initialSelection.week && initialSelection.day) {
-        const validWeek = weeks.includes(initialSelection.week) ? initialSelection.week : firstWeek;
+        const validWeek = baseWeeks.includes(initialSelection.week) ? initialSelection.week : firstWeek;
         const daysInWeek = Array.from(new Set(
           workouts
             .filter(w => w.week === validWeek)
@@ -90,7 +162,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       }
       isInitializing.current = false;
     }
-  }, [initialSelection, weeks, firstWeek, workouts, firstDay]);
+  }, [initialSelection, baseWeeks, firstWeek, workouts, firstDay]);
 
   useEffect(() => {
     if (!isInitializing.current && lastSavedSelection.current) {
@@ -114,6 +186,56 @@ export const Dashboard: React.FC<DashboardProps> = ({
       }
     }
   }, [selectedWeek, workouts, selectedDay]);
+
+  useEffect(() => {
+    if (isInitializing.current) {
+      return;
+    }
+
+    const dayDone = dayCompletion[selectedDay] === true;
+    const weekDone = weekCompletion[selectedWeek] === true;
+    const previousState = completionTransitionRef.current;
+
+    if (!previousState || previousState.week !== selectedWeek || previousState.day !== selectedDay) {
+      completionTransitionRef.current = { week: selectedWeek, day: selectedDay, dayDone, weekDone };
+      return;
+    }
+
+    const dayJustCompleted = previousState.dayDone === false && dayDone;
+    const weekJustCompleted = previousState.weekDone === false && weekDone;
+
+    if (weekJustCompleted) {
+      const currentWeekIndex = baseWeeks.indexOf(selectedWeek);
+      const nextWeek = currentWeekIndex >= 0 ? baseWeeks[currentWeekIndex + 1] : undefined;
+
+      if (typeof nextWeek === 'number') {
+        completionTransitionRef.current = null;
+        handleWeekSelect(nextWeek);
+        return;
+      }
+    }
+
+    if (dayJustCompleted && !weekDone) {
+      const currentDayIndex = baseDays.indexOf(selectedDay);
+      const nextDay = currentDayIndex >= 0 ? baseDays[currentDayIndex + 1] : undefined;
+
+      if (nextDay) {
+        completionTransitionRef.current = null;
+        setSelectedDay(nextDay);
+        return;
+      }
+    }
+
+    completionTransitionRef.current = { week: selectedWeek, day: selectedDay, dayDone, weekDone };
+  }, [
+    selectedWeek,
+    selectedDay,
+    baseWeeks,
+    baseDays,
+    dayCompletion,
+    weekCompletion,
+    handleWeekSelect
+  ]);
 
   const currentDayWorkouts = useMemo(() => {
     return workouts.filter(w => w.week === selectedWeek && w.day === selectedDay);
@@ -227,16 +349,21 @@ export const Dashboard: React.FC<DashboardProps> = ({
               {weeks.map(week => (
                 <button
                   key={week}
-                  onClick={() => setSelectedWeek(week)}
+                  onClick={() => handleWeekSelect(week)}
                   className={`
                             whitespace-nowrap px-4 py-1.5 rounded-full text-sm font-medium transition-all
                             ${selectedWeek === week
                       ? 'bg-white text-gym-900 shadow-md'
-                      : 'bg-gym-800 text-gym-400 hover:bg-gym-700'
+                      : weekCompletion[week]
+                        ? 'bg-gym-800 text-gym-500 hover:bg-gym-700'
+                        : 'bg-gym-800 text-gym-400 hover:bg-gym-700'
                     }
                         `}
                 >
-                  {t('week')} {week}
+                  <span className="inline-flex items-center gap-1.5">
+                    <span>{t('week')} {week}</span>
+                    {weekCompletion[week] && <CheckCircle size={12} />}
+                  </span>
                 </button>
               ))}
             </div>
@@ -250,11 +377,16 @@ export const Dashboard: React.FC<DashboardProps> = ({
                             px-6 py-2 text-sm font-semibold border-b-2 transition-colors
                             ${selectedDay === day
                       ? 'border-gym-accent text-gym-accent'
-                      : 'border-transparent text-gym-500 hover:text-gym-300'
+                      : dayCompletion[day]
+                        ? 'border-transparent text-gym-600 hover:text-gym-400'
+                        : 'border-transparent text-gym-500 hover:text-gym-300'
                     }
                         `}
                 >
-                  {t('day')} {day}
+                  <span className="inline-flex items-center gap-1.5">
+                    <span>{t('day')} {day}</span>
+                    {dayCompletion[day] && <CheckCircle size={12} />}
+                  </span>
                 </button>
               ))}
             </div>

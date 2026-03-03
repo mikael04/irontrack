@@ -22,6 +22,13 @@ const removeData = async (key: string) => {
   await Preferences.remove({ key });
 };
 
+const normalizeWorkout = (workout: WorkoutRaw): WorkoutRaw => {
+  return {
+    ...workout,
+    prep: typeof workout.prep === 'string' && workout.prep.trim().length > 0 ? workout.prep : '-',
+  };
+};
+
 interface SelectionState {
   week: number | null;
   day: string | null;
@@ -45,7 +52,9 @@ export const useWorkoutStorage = () => {
         const storedSelection = await getData(STORAGE_KEY_SELECTION);
 
         if (storedData) {
-          setWorkouts(storedData);
+          const normalizedWorkouts = (storedData as WorkoutRaw[]).map(normalizeWorkout);
+          setWorkouts(normalizedWorkouts);
+          await setData(STORAGE_KEY_DATA, normalizedWorkouts);
         }
         if (storedProgress) {
           setProgress(storedProgress);
@@ -116,6 +125,8 @@ export const useWorkoutStorage = () => {
   }, []);
 
   const importWorkouts = useCallback(async (newWorkouts: WorkoutRaw[], mode: ImportMode = 'replace') => {
+    const normalizedWorkouts = newWorkouts.map(normalizeWorkout);
+
     if (mode === 'replace') {
       await removeData(STORAGE_KEY_DATA);
       await removeData(STORAGE_KEY_PROGRESS);
@@ -123,17 +134,17 @@ export const useWorkoutStorage = () => {
       await removeData(STORAGE_KEY_ORDER);
       await removeData(STORAGE_KEY_SELECTION);
 
-      setWorkouts(newWorkouts);
+      setWorkouts(normalizedWorkouts);
       setProgress({});
       setAnnotations({});
       setCompletionOrder([]);
       setSelection({ week: null, day: null });
-      await setData(STORAGE_KEY_DATA, newWorkouts);
+      await setData(STORAGE_KEY_DATA, normalizedWorkouts);
     } else {
       const mergedProgress: WorkoutProgress = { ...progress };
       const mergedAnnotations: WorkoutAnnotations = { ...annotations };
 
-      newWorkouts.forEach(newWorkout => {
+      normalizedWorkouts.forEach(newWorkout => {
         const existingWorkout = workouts.find(
           w => w.week === newWorkout.week &&
                w.day === newWorkout.day &&
@@ -146,10 +157,10 @@ export const useWorkoutStorage = () => {
         }
       });
 
-      setWorkouts(newWorkouts);
+      setWorkouts(normalizedWorkouts);
       setProgress(mergedProgress);
       setAnnotations(mergedAnnotations);
-      await setData(STORAGE_KEY_DATA, newWorkouts);
+      await setData(STORAGE_KEY_DATA, normalizedWorkouts);
       await setData(STORAGE_KEY_PROGRESS, mergedProgress);
       await setData(STORAGE_KEY_ANNOTATIONS, mergedAnnotations);
     }

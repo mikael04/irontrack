@@ -13,6 +13,7 @@ const transformHeader = (header: string): string => {
   if (h.includes('exercicio')) return 'exercise';
   if (h.includes('serie')) return 'sets';
   if (h.includes('repeticoe') || h.includes('repeti')) return 'reps';
+  if (h === 'prep' || h.includes('preparacao')) return 'prep';
   if (h.includes('carga') && h.includes('%')) return 'load_pct';
   if (h.includes('carga')) return 'load_kg';
   if (h.includes('rpe')) return 'rpe';
@@ -53,6 +54,7 @@ export const parseCSV = (input: File | string): Promise<WorkoutRaw[]> => {
               exercise: row.exercise?.trim() || 'Unknown Exercise',
               total_sets: parseInt(row.sets, 10) || 3,
               reps: row.reps?.trim() || '-',
+              prep: row.prep?.trim() || '-',
               load_pct: row.load_pct?.trim() || '-',
               load_kg: row.load_kg?.trim() || '-',
               rpe: row.rpe?.trim() || '-',

@@ -6,6 +6,7 @@ export interface WorkoutRaw {
   exercise: string;
   total_sets: number;
   reps: string;
+  prep: string;
   load_pct: string;
   load_kg: string;
   rpe: string;
@@ -19,6 +20,7 @@ export interface CSVRow {
   exercise: string;
   sets: string;
   reps: string;
+  prep?: string;
   load_pct: string;
   load_kg: string;
   rpe: string;
