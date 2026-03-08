@@ -15,31 +15,22 @@
 
 - Change the UI
 
-### Add an input column using a selective input
-
-This should measure of effort on that exercise, It should be defined number between 1 and 10. That should use by default the name "RPE".
-Remember that this column could be used in an import tsv, and this need to be in the export csv too. So, by default the option should be "-", which means the user didnt select (this could be pre-selected for all exercises already done that didnt have this row fullfiled)
-
-**Implemented features:**
-- Added RPE (Rating of Perceived Exertion) input column with selectable values 1-10
-- Default value is "-" (not selected)
-- RPE values persist locally and are included in TSV exports
-- User can select RPE for each exercise via dropdown in ExerciseCard
-- Values are preserved during import/merge operations
-
 ## Minor
 ### Add the prep column
 
 The prep column should appear bellow the lines "load, RPE, REPS and REST".
 
-### 
-
-
 # Implemented features
 
 ## Major
 
-## Persistant notification
+### Add an input column using a selective input
+
+This should measure of effort on that exercise, It should be defined number between 1 and 10. That should use by default the name "RPE".
+Remember that this column could be used in an import tsv, and this need to be in the export csv too. So, by default the option should be "-", which means the user didnt select (this could be pre-selected for all exercises already done that didnt have this row fullfiled)
+
+
+### Persistant notification
 
 Now the notification keeps even after I finish 
 
