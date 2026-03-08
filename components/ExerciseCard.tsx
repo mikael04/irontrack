@@ -14,6 +14,8 @@ interface ExerciseCardProps {
   isFinished: boolean;
   annotation: string;
   onAnnotationChange: (annotation: string) => void;
+  rpeValue: string;
+  onRpeValueChange: (rpeValue: string) => void;
 }
 
 export const ExerciseCard: React.FC<ExerciseCardProps> = ({
@@ -24,7 +26,9 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
   timerStartTime,
   isFinished,
   annotation,
-  onAnnotationChange
+  onAnnotationChange,
+  rpeValue,
+  onRpeValueChange
 }) => {
   const { t } = useTranslation();
 
@@ -36,6 +40,10 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
     }
     return states;
   }, [completedSets, workout.total_sets]);
+
+  const prepText = workout.prep?.trim() ?? '';
+  const normalizedPrep = prepText.toLowerCase();
+  const shouldShowPrep = prepText.length > 0 && normalizedPrep !== '-' && normalizedPrep !== 'na' && normalizedPrep !== 'n/a';
 
   return (
     <div className={`
@@ -77,9 +85,19 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
           <div className="p-1.5 bg-gym-800 rounded text-amber-500">
             <Activity size={14} />
           </div>
-          <div className="flex flex-col">
+          <div className="flex flex-col flex-1">
             <span className="text-xs text-gym-500 uppercase">{t('rpe')}</span>
-            <span className="font-mono font-medium text-sm text-white">{workout.rpe}</span>
+            <select
+              value={rpeValue}
+              onChange={(e) => onRpeValueChange(e.target.value)}
+              disabled={isFinished}
+              className="font-mono font-medium text-sm text-white bg-gym-800 border border-gym-700 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-gym-accent disabled:opacity-50"
+            >
+              <option value="-">-</option>
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(num => (
+                <option key={num} value={num.toString()}>{num}</option>
+              ))}
+            </select>
           </div>
         </div>
 
@@ -102,18 +120,18 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
             <span className="font-mono font-medium text-sm text-white">{workout.rest}</span>
           </div>
         </div>
-      </div>
 
-      <div className="mb-4 p-3 bg-gym-900/50 rounded-lg border border-gym-700/50">
-        <div className="flex items-center space-x-2 text-gym-300">
-          <div className="p-1.5 bg-gym-800 rounded text-emerald-500">
-            <ListChecks size={14} />
+        {shouldShowPrep && (
+          <div className="col-span-2 flex items-center space-x-2 text-gym-300">
+            <div className="p-1.5 bg-gym-800 rounded text-emerald-500">
+              <ListChecks size={14} />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-xs text-gym-500 uppercase">{t('prep')}</span>
+              <span className="font-mono font-medium text-sm text-white">{prepText}</span>
+            </div>
           </div>
-          <div className="flex flex-col">
-            <span className="text-xs text-gym-500 uppercase">{t('prep')}</span>
-            <span className="font-mono font-medium text-sm text-white">{workout.prep || '-'}</span>
-          </div>
-        </div>
+        )}
       </div>
 
       {/* Set Tracking */}

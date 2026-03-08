@@ -1,10 +1,11 @@
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
-import { WorkoutRaw, WorkoutProgress, WorkoutAnnotations, CSVRow } from '../types';
+import { WorkoutRaw, WorkoutProgress, WorkoutAnnotations, WorkoutRPEValues, CSVRow } from '../types';
 
 export interface ExportData {
   workouts: WorkoutRaw[];
   progress: WorkoutProgress;
   annotations: WorkoutAnnotations;
+  rpeValues: WorkoutRPEValues;
 }
 
 const TSV_DELIMITER = '\t';
@@ -30,7 +31,7 @@ const isWorkoutComplete = (workoutId: string, progress: WorkoutProgress, totalSe
 };
 
 export const generateExportData = (data: ExportData): string => {
-  const { workouts, progress, annotations } = data;
+  const { workouts, progress, annotations, rpeValues } = data;
 
   const headers = [
     'Semana',
@@ -53,6 +54,9 @@ export const generateExportData = (data: ExportData): string => {
     const completedSets = getCompletedSets(workout.id, progress, workout.total_sets);
     const isComplete = isWorkoutComplete(workout.id, progress, workout.total_sets);
     const annotation = annotations[workout.id] || '';
+    // Usa o RPE selecionado pelo usuário, ou o padrão do workout se não tiver sido alterado
+    const userRpe = rpeValues[workout.id];
+    const rpe = userRpe !== undefined ? userRpe : workout.rpe;
 
     return {
       week: workout.week.toString(),
@@ -64,7 +68,7 @@ export const generateExportData = (data: ExportData): string => {
       prep: workout.prep,
       load_pct: workout.load_pct,
       load_kg: workout.load_kg,
-      rpe: workout.rpe,
+      rpe: rpe,
       rest: workout.rest,
       concluido: isComplete,
       series_feitas: completedSets,

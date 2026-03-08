@@ -65,6 +65,13 @@ cd android && ./gradlew assembleDebug
 cd android && ./gradlew assembleRelease
 ```
 
+## Always send to Android phone
+
+```bash
+# Send to Android App Development bridge
+adb install -r android/app/build/outputs/apk/release/app-release.apk
+
+```
 ---
 
 ## Code Conventions

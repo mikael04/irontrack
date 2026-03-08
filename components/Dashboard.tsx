@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
-import { WorkoutRaw, WorkoutProgress, WorkoutAnnotations } from '../types';
+import { WorkoutRaw, WorkoutProgress, WorkoutAnnotations, WorkoutRPEValues } from '../types';
 import { ExerciseCard } from './ExerciseCard';
 import { Settings, Trophy, CheckCircle, Download, Upload, X, Globe } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -8,9 +8,11 @@ interface DashboardProps {
   workouts: WorkoutRaw[];
   progress: WorkoutProgress;
   annotations: WorkoutAnnotations;
+  rpeValues: WorkoutRPEValues;
   completionOrder: string[];
   onToggleSet: (workoutId: string, setIndex: number, totalSets: number) => void;
   onUpdateAnnotation: (workoutId: string, annotation: string) => void;
+  onUpdateRpeValue: (workoutId: string, rpeValue: string) => void;
   onReset: () => void;
   onExport: () => Promise<string>;
   initialSelection: { week: number | null; day: string | null };
@@ -21,9 +23,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
   workouts,
   progress,
   annotations,
+  rpeValues,
   completionOrder,
   onToggleSet,
   onUpdateAnnotation,
+  onUpdateRpeValue,
   onReset,
   onExport,
   initialSelection,
@@ -436,6 +440,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
               isFinished={false}
               annotation={annotations[workout.id] || ''}
               onAnnotationChange={(annotation) => onUpdateAnnotation(workout.id, annotation)}
+              rpeValue={rpeValues[workout.id] ?? workout.rpe}
+              onRpeValueChange={(rpeValue) => onUpdateRpeValue(workout.id, rpeValue)}
             />
           ))}
 
@@ -459,6 +465,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     isFinished={true}
                     annotation={annotations[workout.id] || ''}
                     onAnnotationChange={(annotation) => onUpdateAnnotation(workout.id, annotation)}
+                    rpeValue={rpeValues[workout.id] ?? workout.rpe}
+                    onRpeValueChange={(rpeValue) => onUpdateRpeValue(workout.id, rpeValue)}
                   />
                 ))}
               </div>
