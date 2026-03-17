@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import { WorkoutRaw, WorkoutProgress, WorkoutAnnotations, WorkoutRPEValues, ImportMode } from '../types';
+import { WorkoutRaw, WorkoutProgress, WorkoutAnnotations, WorkoutRPEValues, WorkoutLoadValues, WorkoutLoadUnits, ImportMode } from '../types';
 import { Preferences } from '@capacitor/preferences';
 import { generateExportData, saveCsvFile, ExportData } from '../utils/exportCsv';
+import { normalizeLoadUnit } from '../utils/loadUnit';
 
 const STORAGE_KEY_DATA = 'irontrack_data';
 const STORAGE_KEY_PROGRESS = 'irontrack_progress';
@@ -9,6 +10,8 @@ const STORAGE_KEY_ORDER = 'irontrack_completion_order';
 const STORAGE_KEY_SELECTION = 'irontrack_selection';
 const STORAGE_KEY_ANNOTATIONS = 'irontrack_annotations';
 const STORAGE_KEY_RPE_VALUES = 'irontrack_rpe_values';
+const STORAGE_KEY_LOAD_VALUES = 'irontrack_load_values';
+const STORAGE_KEY_LOAD_UNITS = 'irontrack_load_units';
 
 const setData = async (key: string, value: any) => {
   await Preferences.set({ key, value: JSON.stringify(value) });
@@ -27,6 +30,7 @@ const normalizeWorkout = (workout: WorkoutRaw): WorkoutRaw => {
   return {
     ...workout,
     prep: typeof workout.prep === 'string' && workout.prep.trim().length > 0 ? workout.prep : '-',
+    load_unit: normalizeLoadUnit(workout.load_unit),
   };
 };
 
@@ -40,6 +44,8 @@ export const useWorkoutStorage = () => {
   const [progress, setProgress] = useState<WorkoutProgress>({});
   const [annotations, setAnnotations] = useState<WorkoutAnnotations>({});
   const [rpeValues, setRpeValues] = useState<WorkoutRPEValues>({});
+  const [loadValues, setLoadValues] = useState<WorkoutLoadValues>({});
+  const [loadUnits, setLoadUnits] = useState<WorkoutLoadUnits>({});
   const [completionOrder, setCompletionOrder] = useState<string[]>([]);
   const [selection, setSelection] = useState<SelectionState>({ week: null, day: null });
   const [isLoaded, setIsLoaded] = useState(false);
@@ -51,6 +57,8 @@ export const useWorkoutStorage = () => {
         const storedProgress = await getData(STORAGE_KEY_PROGRESS);
         const storedAnnotations = await getData(STORAGE_KEY_ANNOTATIONS);
         const storedRpeValues = await getData(STORAGE_KEY_RPE_VALUES);
+        const storedLoadValues = await getData(STORAGE_KEY_LOAD_VALUES);
+        const storedLoadUnits = await getData(STORAGE_KEY_LOAD_UNITS);
         const storedOrder = await getData(STORAGE_KEY_ORDER);
         const storedSelection = await getData(STORAGE_KEY_SELECTION);
 
@@ -67,6 +75,17 @@ export const useWorkoutStorage = () => {
         }
         if (storedRpeValues) {
           setRpeValues(storedRpeValues);
+        }
+        if (storedLoadValues) {
+          setLoadValues(storedLoadValues);
+        }
+        if (storedLoadUnits) {
+          const normalizedUnits: WorkoutLoadUnits = Object.entries(storedLoadUnits).reduce((acc, [key, value]) => {
+            acc[key] = normalizeLoadUnit(value as string);
+            return acc;
+          }, {} as WorkoutLoadUnits);
+          setLoadUnits(normalizedUnits);
+          await setData(STORAGE_KEY_LOAD_UNITS, normalizedUnits);
         }
         if (storedOrder) {
           setCompletionOrder(storedOrder);
@@ -138,6 +157,32 @@ export const useWorkoutStorage = () => {
     });
   }, []);
 
+  const updateLoadValue = useCallback((workoutId: string, loadValue: string) => {
+    const normalized = loadValue.replace(/\./g, ',').replace(/[^0-9,]/g, '');
+    const [whole, ...rest] = normalized.split(',');
+    let sanitized = whole;
+    if (rest.length > 0) {
+      sanitized = `${whole},${rest.join('')}`;
+    }
+    if (sanitized.startsWith(',')) {
+      sanitized = `0${sanitized}`;
+    }
+    setLoadValues((prev) => {
+      const newLoadValues = { ...prev, [workoutId]: sanitized };
+      setData(STORAGE_KEY_LOAD_VALUES, newLoadValues);
+      return newLoadValues;
+    });
+  }, []);
+
+  const updateLoadUnit = useCallback((workoutId: string, loadUnit: string) => {
+    const normalizedUnit = normalizeLoadUnit(loadUnit);
+    setLoadUnits((prev) => {
+      const newLoadUnits = { ...prev, [workoutId]: normalizedUnit };
+      setData(STORAGE_KEY_LOAD_UNITS, newLoadUnits);
+      return newLoadUnits;
+    });
+  }, []);
+
   const importWorkouts = useCallback(async (newWorkouts: WorkoutRaw[], mode: ImportMode = 'replace') => {
     const normalizedWorkouts = newWorkouts.map(normalizeWorkout);
 
@@ -146,6 +191,8 @@ export const useWorkoutStorage = () => {
       await removeData(STORAGE_KEY_PROGRESS);
       await removeData(STORAGE_KEY_ANNOTATIONS);
       await removeData(STORAGE_KEY_RPE_VALUES);
+      await removeData(STORAGE_KEY_LOAD_VALUES);
+      await removeData(STORAGE_KEY_LOAD_UNITS);
       await removeData(STORAGE_KEY_ORDER);
       await removeData(STORAGE_KEY_SELECTION);
 
@@ -153,6 +200,8 @@ export const useWorkoutStorage = () => {
       setProgress({});
       setAnnotations({});
       setRpeValues({});
+      setLoadValues({});
+      setLoadUnits({});
       setCompletionOrder([]);
       setSelection({ week: null, day: null });
       await setData(STORAGE_KEY_DATA, normalizedWorkouts);
@@ -160,6 +209,8 @@ export const useWorkoutStorage = () => {
       const mergedProgress: WorkoutProgress = { ...progress };
       const mergedAnnotations: WorkoutAnnotations = { ...annotations };
       const mergedRpeValues: WorkoutRPEValues = { ...rpeValues };
+      const mergedLoadValues: WorkoutLoadValues = { ...loadValues };
+      const mergedLoadUnits: WorkoutLoadUnits = { ...loadUnits };
 
       normalizedWorkouts.forEach(newWorkout => {
         const existingWorkout = workouts.find(
@@ -172,6 +223,8 @@ export const useWorkoutStorage = () => {
           mergedProgress[newWorkout.id] = progress[existingWorkout.id] || [];
           mergedAnnotations[newWorkout.id] = annotations[existingWorkout.id] || '';
           mergedRpeValues[newWorkout.id] = rpeValues[existingWorkout.id] || '-';
+          mergedLoadValues[newWorkout.id] = loadValues[existingWorkout.id] || '';
+          mergedLoadUnits[newWorkout.id] = loadUnits[existingWorkout.id] || normalizeLoadUnit(newWorkout.load_unit);
         }
       });
 
@@ -179,12 +232,16 @@ export const useWorkoutStorage = () => {
       setProgress(mergedProgress);
       setAnnotations(mergedAnnotations);
       setRpeValues(mergedRpeValues);
+      setLoadValues(mergedLoadValues);
+      setLoadUnits(mergedLoadUnits);
       await setData(STORAGE_KEY_DATA, normalizedWorkouts);
       await setData(STORAGE_KEY_PROGRESS, mergedProgress);
       await setData(STORAGE_KEY_ANNOTATIONS, mergedAnnotations);
       await setData(STORAGE_KEY_RPE_VALUES, mergedRpeValues);
+      await setData(STORAGE_KEY_LOAD_VALUES, mergedLoadValues);
+      await setData(STORAGE_KEY_LOAD_UNITS, mergedLoadUnits);
     }
-  }, [workouts, progress, annotations, rpeValues]);
+  }, [workouts, progress, annotations, rpeValues, loadValues, loadUnits]);
 
   const exportWorkouts = useCallback(async (): Promise<string> => {
     const exportData: ExportData = {
@@ -192,24 +249,30 @@ export const useWorkoutStorage = () => {
       progress,
       annotations,
       rpeValues,
+      loadValues,
+      loadUnits,
     };
 
     const csvContent = generateExportData(exportData);
     const filePath = await saveCsvFile(csvContent);
     return filePath;
-  }, [workouts, progress, annotations, rpeValues]);
+  }, [workouts, progress, annotations, rpeValues, loadValues, loadUnits]);
 
   const clearData = useCallback(async () => {
     await removeData(STORAGE_KEY_DATA);
     await removeData(STORAGE_KEY_PROGRESS);
     await removeData(STORAGE_KEY_ANNOTATIONS);
     await removeData(STORAGE_KEY_RPE_VALUES);
+    await removeData(STORAGE_KEY_LOAD_VALUES);
+    await removeData(STORAGE_KEY_LOAD_UNITS);
     await removeData(STORAGE_KEY_ORDER);
     await removeData(STORAGE_KEY_SELECTION);
     setWorkouts([]);
     setProgress({});
     setAnnotations({});
     setRpeValues({});
+    setLoadValues({});
+    setLoadUnits({});
     setCompletionOrder([]);
     setSelection({ week: null, day: null });
   }, []);
@@ -219,12 +282,16 @@ export const useWorkoutStorage = () => {
     progress,
     annotations,
     rpeValues,
+    loadValues,
+    loadUnits,
     completionOrder,
     selection,
     isLoaded,
     toggleSet,
     updateAnnotation,
     updateRpeValue,
+    updateLoadValue,
+    updateLoadUnit,
     saveSelection,
     importWorkouts,
     exportWorkouts,

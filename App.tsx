@@ -18,12 +18,16 @@ const App: React.FC = () => {
     progress,
     annotations,
     rpeValues,
+    loadValues,
+    loadUnits,
     completionOrder,
     selection,
     isLoaded,
     toggleSet,
     updateAnnotation,
     updateRpeValue,
+    updateLoadValue,
+    updateLoadUnit,
     saveSelection,
     importWorkouts,
     exportWorkouts,
@@ -58,10 +62,14 @@ const App: React.FC = () => {
           progress={progress}
           annotations={annotations}
           rpeValues={rpeValues}
+          loadValues={loadValues}
+          loadUnits={loadUnits}
           completionOrder={completionOrder}
           onToggleSet={toggleSet}
           onUpdateAnnotation={updateAnnotation}
           onUpdateRpeValue={updateRpeValue}
+          onUpdateLoadValue={updateLoadValue}
+          onUpdateLoadUnit={updateLoadUnit}
           onReset={handleReset}
           onExport={exportWorkouts}
           initialSelection={selection}

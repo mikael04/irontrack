@@ -1,11 +1,14 @@
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
-import { WorkoutRaw, WorkoutProgress, WorkoutAnnotations, WorkoutRPEValues, CSVRow } from '../types';
+import { WorkoutRaw, WorkoutProgress, WorkoutAnnotations, WorkoutRPEValues, WorkoutLoadValues, WorkoutLoadUnits, CSVRow } from '../types';
+import { formatLoadUnitForExport, normalizeLoadUnit } from './loadUnit';
 
 export interface ExportData {
   workouts: WorkoutRaw[];
   progress: WorkoutProgress;
   annotations: WorkoutAnnotations;
   rpeValues: WorkoutRPEValues;
+  loadValues: WorkoutLoadValues;
+  loadUnits: WorkoutLoadUnits;
 }
 
 const TSV_DELIMITER = '\t';
@@ -31,7 +34,7 @@ const isWorkoutComplete = (workoutId: string, progress: WorkoutProgress, totalSe
 };
 
 export const generateExportData = (data: ExportData): string => {
-  const { workouts, progress, annotations, rpeValues } = data;
+  const { workouts, progress, annotations, rpeValues, loadValues, loadUnits } = data;
 
   const headers = [
     'Semana',
@@ -43,6 +46,8 @@ export const generateExportData = (data: ExportData): string => {
     'Prep',
     'Carga %',
     'Carga (kg)',
+    'Tipo de Carga (Plano)',
+    'Tipo de Carga (Selecionado)',
     'RPE',
     'Descanso',
     'Concluído',
@@ -57,6 +62,11 @@ export const generateExportData = (data: ExportData): string => {
     // Usa o RPE selecionado pelo usuário, ou o padrão do workout se não tiver sido alterado
     const userRpe = rpeValues[workout.id];
     const rpe = userRpe !== undefined ? userRpe : workout.rpe;
+    const loadValue = loadValues[workout.id];
+    const loadKg = loadValue !== undefined ? loadValue : workout.load_kg;
+    const planUnit = normalizeLoadUnit(workout.load_unit);
+    const unitValue = loadUnits[workout.id];
+    const loadUnit = unitValue !== undefined ? unitValue : planUnit;
 
     return {
       week: workout.week.toString(),
@@ -67,7 +77,9 @@ export const generateExportData = (data: ExportData): string => {
       reps: workout.reps,
       prep: workout.prep,
       load_pct: workout.load_pct,
-      load_kg: workout.load_kg,
+      load_kg: loadKg,
+      load_unit: planUnit,
+      load_unit_selected: loadUnit,
       rpe: rpe,
       rest: workout.rest,
       concluido: isComplete,
@@ -88,6 +100,8 @@ export const generateExportData = (data: ExportData): string => {
       row.prep || '-',
       row.load_pct,
       row.load_kg,
+      formatLoadUnitForExport(normalizeLoadUnit(row.load_unit)),
+      formatLoadUnitForExport(normalizeLoadUnit(row.load_unit_selected)),
       row.rpe,
       row.rest,
       row.concluido || 'Não',

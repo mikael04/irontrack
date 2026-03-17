@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
-import { WorkoutRaw, WorkoutProgress, WorkoutAnnotations, WorkoutRPEValues } from '../types';
+import { WorkoutRaw, WorkoutProgress, WorkoutAnnotations, WorkoutRPEValues, WorkoutLoadValues, WorkoutLoadUnits } from '../types';
 import { ExerciseCard } from './ExerciseCard';
 import { Settings, Trophy, CheckCircle, Download, Upload, X, Globe } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -9,10 +9,14 @@ interface DashboardProps {
   progress: WorkoutProgress;
   annotations: WorkoutAnnotations;
   rpeValues: WorkoutRPEValues;
+  loadValues: WorkoutLoadValues;
+  loadUnits: WorkoutLoadUnits;
   completionOrder: string[];
   onToggleSet: (workoutId: string, setIndex: number, totalSets: number) => void;
   onUpdateAnnotation: (workoutId: string, annotation: string) => void;
   onUpdateRpeValue: (workoutId: string, rpeValue: string) => void;
+  onUpdateLoadValue: (workoutId: string, loadValue: string) => void;
+  onUpdateLoadUnit: (workoutId: string, loadUnit: string) => void;
   onReset: () => void;
   onExport: () => Promise<string>;
   initialSelection: { week: number | null; day: string | null };
@@ -24,10 +28,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
   progress,
   annotations,
   rpeValues,
+  loadValues,
+  loadUnits,
   completionOrder,
   onToggleSet,
   onUpdateAnnotation,
   onUpdateRpeValue,
+  onUpdateLoadValue,
+  onUpdateLoadUnit,
   onReset,
   onExport,
   initialSelection,
@@ -442,6 +450,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
               onAnnotationChange={(annotation) => onUpdateAnnotation(workout.id, annotation)}
               rpeValue={rpeValues[workout.id] ?? workout.rpe}
               onRpeValueChange={(rpeValue) => onUpdateRpeValue(workout.id, rpeValue)}
+              loadValue={loadValues[workout.id]}
+              loadUnit={loadUnits[workout.id] ?? workout.load_unit}
+              onLoadValueChange={(loadValue) => onUpdateLoadValue(workout.id, loadValue)}
+              onLoadUnitChange={(loadUnit) => onUpdateLoadUnit(workout.id, loadUnit)}
             />
           ))}
 
@@ -467,6 +479,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     onAnnotationChange={(annotation) => onUpdateAnnotation(workout.id, annotation)}
                     rpeValue={rpeValues[workout.id] ?? workout.rpe}
                     onRpeValueChange={(rpeValue) => onUpdateRpeValue(workout.id, rpeValue)}
+                    loadValue={loadValues[workout.id]}
+                    loadUnit={loadUnits[workout.id] ?? workout.load_unit}
+                    onLoadValueChange={(loadValue) => onUpdateLoadValue(workout.id, loadValue)}
+                    onLoadUnitChange={(loadUnit) => onUpdateLoadUnit(workout.id, loadUnit)}
                   />
                 ))}
               </div>

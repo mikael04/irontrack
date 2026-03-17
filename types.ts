@@ -1,3 +1,5 @@
+export type LoadUnit = 'kg' | 'bar' | 'dumb';
+
 export interface WorkoutRaw {
   id: string;
   week: number;
@@ -9,6 +11,7 @@ export interface WorkoutRaw {
   prep: string;
   load_pct: string;
   load_kg: string;
+  load_unit: LoadUnit;
   rpe: string;
   rest: string;
 }
@@ -23,6 +26,8 @@ export interface CSVRow {
   prep?: string;
   load_pct: string;
   load_kg: string;
+  load_unit?: string;
+  load_unit_selected?: string;
   rpe: string;
   rest: string;
   concluido?: string;
@@ -41,10 +46,18 @@ export type WorkoutAnnotations = Record<string, string>;
 // Valores possíveis: "-" (não selecionado), "1" a "10"
 export type WorkoutRPEValues = Record<string, string>;
 
+// Armazena valores de carga selecionados pelo usuário para cada exercício (workoutId -> carga)
+export type WorkoutLoadValues = Record<string, string>;
+
+// Armazena unidade de carga selecionada pelo usuário para cada exercício (workoutId -> unidade)
+export type WorkoutLoadUnits = Record<string, LoadUnit>;
+
 export interface AppState {
   isInitialized: boolean;
   workouts: WorkoutRaw[];
   progress: WorkoutProgress;
   annotations: WorkoutAnnotations;
   rpeValues: WorkoutRPEValues;
+  loadValues: WorkoutLoadValues;
+  loadUnits: WorkoutLoadUnits;
 }

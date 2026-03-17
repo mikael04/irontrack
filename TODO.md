@@ -11,6 +11,23 @@
 
 # Features to be implemented
 
+## Add a new 1RM Section to the app
+
+Add a section that would be a button on the left side of weeks (so it should be, "1RM", "Week 1", ...,""). 
+This section will have three cards with each movement, "Squad", "Bench", "Deadlift" in english version, this need to have a select input weight (just "kg"), and on below lines it should have a percent of the movement total load.
+The first line should be the 100% and the value input.
+So the seccond line should be: "20%", and this need to calculate (and dynamic changes) the value of 20% of the 1RM writen value.
+Do that for 20%, 40%, 50%, 60%, 70%, 75%, 80%, 85%, 90%, 95%.
+Those cards should start contracted, on click it expand and show all those lines (from 100%, 20%, ..., 95%)
+
+## Add a timestamp to the train
+
+So when I finish the exercise (the last set) it should save the date (day, month and year)
+
+## Retrive the last time I did the same exercise
+
+I need to be able to find the last time I did the same exercise and show it in the card of the exercise beeing done. It should match the number of reps and it should shown the number of reps, number os series, weight and the date done.
+
 ## Major
 
 - Change the UI
@@ -23,6 +40,12 @@ The prep column should appear bellow the lines "load, RPE, REPS and REST".
 # Implemented features
 
 ## Major
+
+## Add a select to weight on exercises
+
+I want to be able to select which type of measure (kg, bars, or dumb., kg, barras ou halt.).
+And the weight, it should be a text input that only accepts integers (numbers from 0 to infinite).
+
 
 ### Add an input column using a selective input
 

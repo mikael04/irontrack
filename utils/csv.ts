@@ -1,5 +1,6 @@
 import Papa from 'papaparse';
 import { CSVRow, WorkoutRaw } from '../types';
+import { normalizeLoadUnit } from './loadUnit';
 
 const transformHeader = (header: string): string => {
   const h = header.toLowerCase()
@@ -15,6 +16,8 @@ const transformHeader = (header: string): string => {
   if (h.includes('repeticoe') || h.includes('repeti')) return 'reps';
   if (h === 'prep' || h.includes('preparacao')) return 'prep';
   if (h.includes('carga') && h.includes('%')) return 'load_pct';
+  if (h.includes('carga') && (h.includes('tipo') || h.includes('unidade') || h.includes('medida'))) return 'load_unit';
+  if (h.includes('load') && (h.includes('unit') || h.includes('type'))) return 'load_unit';
   if (h.includes('carga')) return 'load_kg';
   if (h.includes('rpe')) return 'rpe';
   if (h.includes('descanso')) return 'rest';
@@ -57,6 +60,7 @@ export const parseCSV = (input: File | string): Promise<WorkoutRaw[]> => {
               prep: row.prep?.trim() || '-',
               load_pct: row.load_pct?.trim() || '-',
               load_kg: row.load_kg?.trim() || '-',
+              load_unit: normalizeLoadUnit(row.load_unit),
               rpe: row.rpe?.trim() || '-',
               rest: row.rest?.trim() || '-',
             };

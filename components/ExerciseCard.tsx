@@ -16,6 +16,10 @@ interface ExerciseCardProps {
   onAnnotationChange: (annotation: string) => void;
   rpeValue: string;
   onRpeValueChange: (rpeValue: string) => void;
+  loadValue?: string;
+  loadUnit: string;
+  onLoadValueChange: (loadValue: string) => void;
+  onLoadUnitChange: (loadUnit: string) => void;
 }
 
 export const ExerciseCard: React.FC<ExerciseCardProps> = ({
@@ -28,7 +32,11 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
   annotation,
   onAnnotationChange,
   rpeValue,
-  onRpeValueChange
+  onRpeValueChange,
+  loadValue,
+  loadUnit,
+  onLoadValueChange,
+  onLoadUnitChange
 }) => {
   const { t } = useTranslation();
 
@@ -44,6 +52,20 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
   const prepText = workout.prep?.trim() ?? '';
   const normalizedPrep = prepText.toLowerCase();
   const shouldShowPrep = prepText.length > 0 && normalizedPrep !== '-' && normalizedPrep !== 'na' && normalizedPrep !== 'n/a';
+  const normalizeLoadValue = (value: string): string => {
+    const normalized = value.replace(/\./g, ',').replace(/[^0-9,]/g, '');
+    const [whole, ...rest] = normalized.split(',');
+    let result = whole;
+    if (rest.length > 0) {
+      result = `${whole},${rest.join('')}`;
+    }
+    if (result.startsWith(',')) {
+      return `0${result}`;
+    }
+    return result;
+  };
+
+  const displayLoadValue = loadValue ?? normalizeLoadValue(workout.load_kg);
 
   return (
     <div className={`
@@ -70,14 +92,45 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
       </div>
 
       {/* Info Grid */}
-      <div className="grid grid-cols-2 gap-3 my-4 p-3 bg-gym-900/50 rounded-lg border border-gym-700/50">
-        <div className="flex items-center space-x-2 text-gym-300">
+      <div className="grid grid-cols-3 gap-3 my-4 p-3 bg-gym-900/50 rounded-lg border border-gym-700/50">
+        <div className="col-span-2 flex items-center space-x-2 text-gym-300">
           <div className="p-1.5 bg-gym-800 rounded text-gym-accent">
             <Dumbbell size={14} />
           </div>
           <div className="flex flex-col">
-            <span className="text-xs text-gym-500 uppercase">{t('load')}</span>
-            <span className="font-mono font-medium text-sm text-white">{workout.load_kg} <span className="text-xs text-gym-500">({workout.load_pct})</span></span>
+            <span className="text-xs text-gym-500 uppercase">
+              {t('load')}
+              {workout.load_pct && workout.load_pct !== '-' && (
+                <span className="ml-1 text-gym-500">({workout.load_pct})</span>
+              )}
+            </span>
+            <div className="flex items-center gap-2">
+              <input
+                value={displayLoadValue}
+                onChange={(e) => onLoadValueChange(e.target.value)}
+                onBlur={() => {
+                  if (displayLoadValue === '') {
+                    onLoadValueChange('0');
+                  }
+                }}
+                inputMode="decimal"
+                pattern="[0-9,]*"
+                disabled={isFinished}
+                className="w-20 font-mono font-medium text-sm text-white bg-gym-800 border border-gym-700 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-gym-accent disabled:opacity-50"
+                aria-label={t('load')}
+              />
+              <select
+                value={loadUnit}
+                onChange={(e) => onLoadUnitChange(e.target.value)}
+                disabled={isFinished}
+                className="w-16 font-mono font-medium text-sm text-white bg-gym-800 border border-gym-700 rounded px-1 py-1 focus:outline-none focus:ring-2 focus:ring-gym-accent disabled:opacity-50"
+                aria-label={t('load_unit')}
+              >
+                <option value="kg">{t('load_unit_kg')}</option>
+                <option value="bar">{t('load_unit_bars')}</option>
+                <option value="dumb">{t('load_unit_dumb')}</option>
+              </select>
+            </div>
           </div>
         </div>
 
@@ -85,13 +138,13 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
           <div className="p-1.5 bg-gym-800 rounded text-amber-500">
             <Activity size={14} />
           </div>
-          <div className="flex flex-col flex-1">
+          <div className="flex flex-col">
             <span className="text-xs text-gym-500 uppercase">{t('rpe')}</span>
             <select
               value={rpeValue}
               onChange={(e) => onRpeValueChange(e.target.value)}
               disabled={isFinished}
-              className="font-mono font-medium text-sm text-white bg-gym-800 border border-gym-700 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-gym-accent disabled:opacity-50"
+              className="w-14 font-mono font-medium text-sm text-white bg-gym-800 border border-gym-700 rounded px-1 py-0.5 focus:outline-none focus:ring-2 focus:ring-gym-accent disabled:opacity-50"
             >
               <option value="-">-</option>
               {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(num => (
@@ -111,7 +164,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center space-x-2 text-gym-300">
+        <div className="col-span-2 flex items-center space-x-2 text-gym-300">
           <div className="p-1.5 bg-gym-800 rounded text-purple-500">
             <Clock size={14} />
           </div>
@@ -122,7 +175,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
         </div>
 
         {shouldShowPrep && (
-          <div className="col-span-2 flex items-center space-x-2 text-gym-300">
+          <div className="col-span-3 flex items-center space-x-2 text-gym-300">
             <div className="p-1.5 bg-gym-800 rounded text-emerald-500">
               <ListChecks size={14} />
             </div>
