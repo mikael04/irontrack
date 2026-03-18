@@ -16,6 +16,7 @@ const transformHeader = (header: string): string => {
   if (h.includes('repeticoe') || h.includes('repeti')) return 'reps';
   if (h === 'prep' || h.includes('preparacao')) return 'prep';
   if (h.includes('carga') && h.includes('%')) return 'load_pct';
+  if (h.includes('carga') && (h.includes('selecionad') || h.includes('selected'))) return 'load_unit_selected';
   if (h.includes('carga') && (h.includes('tipo') || h.includes('unidade') || h.includes('medida'))) return 'load_unit';
   if (h.includes('load') && (h.includes('unit') || h.includes('type'))) return 'load_unit';
   if (h.includes('carga')) return 'load_kg';
@@ -61,6 +62,7 @@ export const parseCSV = (input: File | string): Promise<WorkoutRaw[]> => {
               load_pct: row.load_pct?.trim() || '-',
               load_kg: row.load_kg?.trim() || '-',
               load_unit: normalizeLoadUnit(row.load_unit),
+              load_unit_selected: row.load_unit_selected ? normalizeLoadUnit(row.load_unit_selected) : undefined,
               rpe: row.rpe?.trim() || '-',
               rest: row.rest?.trim() || '-',
             };

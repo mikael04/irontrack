@@ -31,6 +31,7 @@ const normalizeWorkout = (workout: WorkoutRaw): WorkoutRaw => {
     ...workout,
     prep: typeof workout.prep === 'string' && workout.prep.trim().length > 0 ? workout.prep : '-',
     load_unit: normalizeLoadUnit(workout.load_unit),
+    load_unit_selected: workout.load_unit_selected ? normalizeLoadUnit(workout.load_unit_selected) : undefined,
   };
 };
 
@@ -185,6 +186,13 @@ export const useWorkoutStorage = () => {
 
   const importWorkouts = useCallback(async (newWorkouts: WorkoutRaw[], mode: ImportMode = 'replace') => {
     const normalizedWorkouts = newWorkouts.map(normalizeWorkout);
+    const importedLoadUnits: WorkoutLoadUnits = {};
+
+    normalizedWorkouts.forEach((workout) => {
+      if (workout.load_unit_selected) {
+        importedLoadUnits[workout.id] = workout.load_unit_selected;
+      }
+    });
 
     if (mode === 'replace') {
       await removeData(STORAGE_KEY_DATA);
@@ -201,10 +209,11 @@ export const useWorkoutStorage = () => {
       setAnnotations({});
       setRpeValues({});
       setLoadValues({});
-      setLoadUnits({});
+      setLoadUnits(importedLoadUnits);
       setCompletionOrder([]);
       setSelection({ week: null, day: null });
       await setData(STORAGE_KEY_DATA, normalizedWorkouts);
+      await setData(STORAGE_KEY_LOAD_UNITS, importedLoadUnits);
     } else {
       const mergedProgress: WorkoutProgress = { ...progress };
       const mergedAnnotations: WorkoutAnnotations = { ...annotations };
@@ -225,6 +234,9 @@ export const useWorkoutStorage = () => {
           mergedRpeValues[newWorkout.id] = rpeValues[existingWorkout.id] || '-';
           mergedLoadValues[newWorkout.id] = loadValues[existingWorkout.id] || '';
           mergedLoadUnits[newWorkout.id] = loadUnits[existingWorkout.id] || normalizeLoadUnit(newWorkout.load_unit);
+        }
+        if (newWorkout.load_unit_selected) {
+          mergedLoadUnits[newWorkout.id] = newWorkout.load_unit_selected;
         }
       });
 

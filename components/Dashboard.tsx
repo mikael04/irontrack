@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { WorkoutRaw, WorkoutProgress, WorkoutAnnotations, WorkoutRPEValues, WorkoutLoadValues, WorkoutLoadUnits } from '../types';
 import { ExerciseCard } from './ExerciseCard';
+import { OneRmSection } from './OneRmSection';
 import { Settings, Trophy, CheckCircle, Download, Upload, X, Globe } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
@@ -45,6 +46,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [activeTimerWorkoutId, setActiveTimerWorkoutId] = useState<string | null>(null);
   const [timerStartTime, setTimerStartTime] = useState<number | null>(null);
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
+  const [showOneRm, setShowOneRm] = useState(false);
+  const [oneRmValues, setOneRmValues] = useState<Record<string, string>>({
+    squat: '',
+    bench: '',
+    deadlift: ''
+  });
   const { t, i18n } = useTranslation();
 
   const toggleLanguage = () => {
@@ -154,6 +161,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
       return week;
     });
   }, [workouts]);
+
+  const handleOneRmValueChange = useCallback((id: string, value: string) => {
+    setOneRmValues((previous) => ({ ...previous, [id]: value }));
+  }, []);
 
   useEffect(() => {
     if (isInitializing.current) {
@@ -358,13 +369,28 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
           <div className="flex flex-col space-y-3">
             <div className="flex items-center space-x-2 overflow-x-auto no-scrollbar pb-1">
+              <button
+                onClick={() => setShowOneRm(true)}
+                className={`
+                            whitespace-nowrap px-4 py-1.5 rounded-full text-sm font-medium transition-all
+                            ${showOneRm
+                    ? 'bg-white text-gym-900 shadow-md'
+                    : 'bg-gym-800 text-gym-400 hover:bg-gym-700'
+                  }
+                        `}
+              >
+                {t('one_rm_tab')}
+              </button>
               {weeks.map(week => (
                 <button
                   key={week}
-                  onClick={() => handleWeekSelect(week)}
+                  onClick={() => {
+                    setShowOneRm(false);
+                    handleWeekSelect(week);
+                  }}
                   className={`
                             whitespace-nowrap px-4 py-1.5 rounded-full text-sm font-medium transition-all
-                            ${selectedWeek === week
+                            ${!showOneRm && selectedWeek === week
                       ? 'bg-white text-gym-900 shadow-md'
                       : weekCompletion[week]
                         ? 'bg-gym-800 text-gym-500 hover:bg-gym-700'
@@ -380,7 +406,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
               ))}
             </div>
 
-            <div className="flex border-b border-gym-700">
+            {!showOneRm && (
+              <div className="flex border-b border-gym-700">
               {days.map(day => (
                 <button
                   key={day}
@@ -401,7 +428,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   </span>
                 </button>
               ))}
-            </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -415,80 +443,94 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
       <main className="max-w-3xl mx-auto px-4 py-6">
 
-        <div className="flex justify-between items-end mb-6">
-          <div>
-            <h2 className="text-2xl font-bold text-white">
-              {t('day')} {selectedDay}
-            </h2>
-            <p className="text-gym-400 text-sm">
-              {currentDayWorkouts.length > 0 ? currentDayWorkouts[0].focus : t('rest_day')}
-            </p>
-          </div>
-          <div className="text-right">
-            <span className="text-3xl font-black text-white">{progressPercentage}%</span>
-            <p className="text-xs text-gym-500 uppercase tracking-wide">{t('daily_goal')}</p>
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          {activeWorkouts.length === 0 && finishedWorkouts.length === 0 && (
-            <div className="text-center py-20 bg-gym-800/50 rounded-xl border border-dashed border-gym-700">
-              <p className="text-gym-500">{t('no_exercises_found')}</p>
-            </div>
-          )}
-
-          {activeWorkouts.map(workout => (
-            <ExerciseCard
-              key={workout.id}
-              workout={workout}
-              completedSets={progress[workout.id] || []}
-              onToggleSet={(setIndex) => handleSetToggle(workout.id, setIndex, workout.total_sets)}
-              showTimer={activeTimerWorkoutId === workout.id}
-              timerStartTime={timerStartTime}
-              isFinished={false}
-              annotation={annotations[workout.id] || ''}
-              onAnnotationChange={(annotation) => onUpdateAnnotation(workout.id, annotation)}
-              rpeValue={rpeValues[workout.id] ?? workout.rpe}
-              onRpeValueChange={(rpeValue) => onUpdateRpeValue(workout.id, rpeValue)}
-              loadValue={loadValues[workout.id]}
-              loadUnit={loadUnits[workout.id] ?? workout.load_unit}
-              onLoadValueChange={(loadValue) => onUpdateLoadValue(workout.id, loadValue)}
-              onLoadUnitChange={(loadUnit) => onUpdateLoadUnit(workout.id, loadUnit)}
-            />
-          ))}
-
-          {finishedWorkouts.length > 0 && (
-            <div className="pt-8 pb-4">
-              <div className="flex items-center space-x-3 text-gym-500 mb-4">
-                <CheckCircle size={20} />
-                <h3 className="font-bold text-sm uppercase tracking-wider">{t('completed_exercises')}</h3>
-                <div className="h-px bg-gym-800 flex-grow"></div>
-              </div>
-
-              <div className="space-y-4">
-                {finishedWorkouts.map(workout => (
-                  <ExerciseCard
-                    key={workout.id}
-                    workout={workout}
-                    completedSets={progress[workout.id] || []}
-                    onToggleSet={(setIndex) => handleSetToggle(workout.id, setIndex, workout.total_sets)}
-                    showTimer={activeTimerWorkoutId === workout.id}
-                    timerStartTime={timerStartTime}
-                    isFinished={true}
-                    annotation={annotations[workout.id] || ''}
-                    onAnnotationChange={(annotation) => onUpdateAnnotation(workout.id, annotation)}
-                    rpeValue={rpeValues[workout.id] ?? workout.rpe}
-                    onRpeValueChange={(rpeValue) => onUpdateRpeValue(workout.id, rpeValue)}
-                    loadValue={loadValues[workout.id]}
-                    loadUnit={loadUnits[workout.id] ?? workout.load_unit}
-                    onLoadValueChange={(loadValue) => onUpdateLoadValue(workout.id, loadValue)}
-                    onLoadUnitChange={(loadUnit) => onUpdateLoadUnit(workout.id, loadUnit)}
-                  />
-                ))}
+        {showOneRm ? (
+          <div className="space-y-6">
+            <div className="flex items-end justify-between">
+              <div>
+                <h2 className="text-2xl font-bold text-white">{t('one_rm_label')}</h2>
+                <p className="text-gym-400 text-sm">{t('one_rm_subtitle')}</p>
               </div>
             </div>
-          )}
-        </div>
+            <OneRmSection values={oneRmValues} onChangeValue={handleOneRmValueChange} />
+          </div>
+        ) : (
+          <>
+            <div className="flex justify-between items-end mb-6">
+              <div>
+                <h2 className="text-2xl font-bold text-white">
+                  {t('day')} {selectedDay}
+                </h2>
+                <p className="text-gym-400 text-sm">
+                  {currentDayWorkouts.length > 0 ? currentDayWorkouts[0].focus : t('rest_day')}
+                </p>
+              </div>
+              <div className="text-right">
+                <span className="text-3xl font-black text-white">{progressPercentage}%</span>
+                <p className="text-xs text-gym-500 uppercase tracking-wide">{t('daily_goal')}</p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              {activeWorkouts.length === 0 && finishedWorkouts.length === 0 && (
+                <div className="text-center py-20 bg-gym-800/50 rounded-xl border border-dashed border-gym-700">
+                  <p className="text-gym-500">{t('no_exercises_found')}</p>
+                </div>
+              )}
+
+              {activeWorkouts.map(workout => (
+                <ExerciseCard
+                  key={workout.id}
+                  workout={workout}
+                  completedSets={progress[workout.id] || []}
+                  onToggleSet={(setIndex) => handleSetToggle(workout.id, setIndex, workout.total_sets)}
+                  showTimer={activeTimerWorkoutId === workout.id}
+                  timerStartTime={timerStartTime}
+                  isFinished={false}
+                  annotation={annotations[workout.id] || ''}
+                  onAnnotationChange={(annotation) => onUpdateAnnotation(workout.id, annotation)}
+                  rpeValue={rpeValues[workout.id] ?? workout.rpe}
+                  onRpeValueChange={(rpeValue) => onUpdateRpeValue(workout.id, rpeValue)}
+                  loadValue={loadValues[workout.id]}
+                  loadUnit={loadUnits[workout.id] ?? workout.load_unit}
+                  onLoadValueChange={(loadValue) => onUpdateLoadValue(workout.id, loadValue)}
+                  onLoadUnitChange={(loadUnit) => onUpdateLoadUnit(workout.id, loadUnit)}
+                />
+              ))}
+
+              {finishedWorkouts.length > 0 && (
+                <div className="pt-8 pb-4">
+                  <div className="flex items-center space-x-3 text-gym-500 mb-4">
+                    <CheckCircle size={20} />
+                    <h3 className="font-bold text-sm uppercase tracking-wider">{t('completed_exercises')}</h3>
+                    <div className="h-px bg-gym-800 flex-grow"></div>
+                  </div>
+
+                  <div className="space-y-4">
+                    {finishedWorkouts.map(workout => (
+                      <ExerciseCard
+                        key={workout.id}
+                        workout={workout}
+                        completedSets={progress[workout.id] || []}
+                        onToggleSet={(setIndex) => handleSetToggle(workout.id, setIndex, workout.total_sets)}
+                        showTimer={activeTimerWorkoutId === workout.id}
+                        timerStartTime={timerStartTime}
+                        isFinished={true}
+                        annotation={annotations[workout.id] || ''}
+                        onAnnotationChange={(annotation) => onUpdateAnnotation(workout.id, annotation)}
+                        rpeValue={rpeValues[workout.id] ?? workout.rpe}
+                        onRpeValueChange={(rpeValue) => onUpdateRpeValue(workout.id, rpeValue)}
+                        loadValue={loadValues[workout.id]}
+                        loadUnit={loadUnits[workout.id] ?? workout.load_unit}
+                        onLoadValueChange={(loadValue) => onUpdateLoadValue(workout.id, loadValue)}
+                        onLoadUnitChange={(loadUnit) => onUpdateLoadUnit(workout.id, loadUnit)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </>
+        )}
       </main>
 
       {/* Settings Menu Modal */}

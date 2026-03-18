@@ -41,7 +41,14 @@ const resources = {
             "replace_desc": "Clear all current data and load the new file",
             "merge_desc": "Update matching exercises while keeping progress and annotations",
             "language": "Language",
-            "exercise_notification": "Exercise"
+            "exercise_notification": "Exercise",
+            "one_rm_tab": "1RM",
+            "one_rm_label": "1RM",
+            "one_rm_subtitle": "Calculate 1RM percentages quickly",
+            "one_rm_squat": "Squat",
+            "one_rm_bench": "Bench",
+            "one_rm_deadlift": "Deadlift",
+            "one_rm_percent_100": "100%"
         }
     },
     'pt-BR': {
@@ -83,7 +90,14 @@ const resources = {
             "replace_desc": "Limpar todos os dados atuais e carregar o novo arquivo",
             "merge_desc": "Atualizar exercícios correspondentes mantendo progresso e anotações",
             "language": "Idioma",
-            "exercise_notification": "Exercício"
+            "exercise_notification": "Exercício",
+            "one_rm_tab": "1RM",
+            "one_rm_label": "1RM",
+            "one_rm_subtitle": "Calcule percentuais de 1RM rapidamente",
+            "one_rm_squat": "Agachamento",
+            "one_rm_bench": "Supino",
+            "one_rm_deadlift": "Levantamento terra",
+            "one_rm_percent_100": "100%"
         }
     }
 };

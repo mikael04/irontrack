@@ -12,6 +12,7 @@ export interface WorkoutRaw {
   load_pct: string;
   load_kg: string;
   load_unit: LoadUnit;
+  load_unit_selected?: LoadUnit;
   rpe: string;
   rest: string;
 }
