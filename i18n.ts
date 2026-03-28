@@ -48,7 +48,15 @@ const resources = {
             "one_rm_squat": "Squat",
             "one_rm_bench": "Bench",
             "one_rm_deadlift": "Deadlift",
-            "one_rm_percent_100": "100%"
+            "one_rm_percent_100": "100%",
+            "ontrain_toggle_label": "OnTrain",
+            "ontrain_progress": "Progress",
+            "ontrain_remaining": "{{count}} left",
+            "next_exercise": "Next",
+            "next_exercise_none": "No next exercise",
+            "last_session": "Last Session",
+            "last_session_empty": "No previous session found for this exercise yet.",
+            "last_session_no_comment": "No comment."
         }
     },
     'pt-BR': {
@@ -97,7 +105,15 @@ const resources = {
             "one_rm_squat": "Agachamento",
             "one_rm_bench": "Supino",
             "one_rm_deadlift": "Levantamento terra",
-            "one_rm_percent_100": "100%"
+            "one_rm_percent_100": "100%",
+            "ontrain_toggle_label": "NoTreino",
+            "ontrain_progress": "Progresso",
+            "ontrain_remaining": "{{count}} restantes",
+            "next_exercise": "Próximo",
+            "next_exercise_none": "Sem próximo exercício",
+            "last_session": "Última Sessão",
+            "last_session_empty": "Ainda não há sessão anterior para este exercício.",
+            "last_session_no_comment": "Sem comentário."
         }
     }
 };

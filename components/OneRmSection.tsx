@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { OneRmMovementId, OneRmValues } from '../types';
 
 interface OneRmSectionProps {
-  values: Record<string, string>;
-  onChangeValue: (id: string, value: string) => void;
+  values: OneRmValues;
+  onChangeValue: (id: OneRmMovementId, value: string) => void;
 }
 
 interface MovementDefinition {
-  id: string;
+  id: OneRmMovementId;
   label: string;
 }
 

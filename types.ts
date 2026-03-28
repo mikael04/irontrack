@@ -1,4 +1,12 @@
 export type LoadUnit = 'kg' | 'bar' | 'dumb';
+export type ViewMode = 'classic' | 'ontrain';
+export type OneRmMovementId = 'squat' | 'bench' | 'deadlift';
+
+export interface OneRmValues {
+  squat: string;
+  bench: string;
+  deadlift: string;
+}
 
 export interface WorkoutRaw {
   id: string;
@@ -53,6 +61,23 @@ export type WorkoutLoadValues = Record<string, string>;
 // Armazena unidade de carga selecionada pelo usuário para cada exercício (workoutId -> unidade)
 export type WorkoutLoadUnits = Record<string, LoadUnit>;
 
+export interface ExerciseHistoryEntry {
+  id: string;
+  sourceWorkoutId: string;
+  exerciseName: string;
+  exerciseNameKey: string;
+  reps: string;
+  completedAt: string;
+  loadValue: string;
+  loadUnit: LoadUnit;
+  setsDone: number;
+  totalSets: number;
+  rpe: string;
+  comment: string;
+}
+
+export type ExerciseHistoryMap = Record<string, ExerciseHistoryEntry[]>;
+
 export interface AppState {
   isInitialized: boolean;
   workouts: WorkoutRaw[];
@@ -61,4 +86,5 @@ export interface AppState {
   rpeValues: WorkoutRPEValues;
   loadValues: WorkoutLoadValues;
   loadUnits: WorkoutLoadUnits;
+  oneRmValues: OneRmValues;
 }

@@ -20,6 +20,7 @@ interface ExerciseCardProps {
   loadUnit: string;
   onLoadValueChange: (loadValue: string) => void;
   onLoadUnitChange: (loadUnit: string) => void;
+  variant?: 'classic' | 'ontrain';
 }
 
 export const ExerciseCard: React.FC<ExerciseCardProps> = ({
@@ -36,9 +37,11 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
   loadValue,
   loadUnit,
   onLoadValueChange,
-  onLoadUnitChange
+  onLoadUnitChange,
+  variant = 'classic'
 }) => {
   const { t } = useTranslation();
+  const isOnTrainVariant = variant === 'ontrain';
 
   // Ensure we have a boolean for every set, defaulting to false
   const setsState = useMemo(() => {
@@ -69,13 +72,16 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
 
   return (
     <div className={`
-      rounded-xl p-5 shadow-lg border mb-4 transition-all duration-300
+      rounded-xl shadow-lg border transition-all duration-300
+      ${isOnTrainVariant ? 'h-full mb-0 overflow-hidden p-3 flex flex-col' : 'mb-4 p-5'}
       ${isFinished
         ? 'bg-gym-900/40 border-gym-800 opacity-75 grayscale-[0.3]'
-        : 'bg-gym-800 border-gym-700 hover:scale-[1.01]'
+        : isOnTrainVariant
+          ? 'bg-gym-800 border-gym-700'
+          : 'bg-gym-800 border-gym-700 hover:scale-[1.01]'
       }
     `}>
-      <div className="flex justify-between items-start mb-2">
+      <div className={`${isOnTrainVariant ? 'mb-1' : 'mb-2'} flex justify-between items-start`}>
         <div>
           <h3 className={`text-xl font-bold tracking-tight leading-tight ${isFinished ? 'text-gym-400 line-through' : 'text-white'}`}>
             {workout.exercise}
@@ -92,7 +98,9 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
       </div>
 
       {/* Info Grid */}
-      <div className="grid grid-cols-3 gap-3 my-4 p-3 bg-gym-900/50 rounded-lg border border-gym-700/50">
+      <div className={`grid grid-cols-3 bg-gym-900/50 rounded-lg border border-gym-700/50 ${
+        isOnTrainVariant ? 'gap-2 my-2 p-2' : 'gap-3 my-4 p-3'
+      }`}>
         <div className="col-span-2 flex items-center space-x-2 text-gym-300">
           <div className="p-1.5 bg-gym-800 rounded text-gym-accent">
             <Dumbbell size={14} />
@@ -116,14 +124,18 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
                 inputMode="decimal"
                 pattern="[0-9,]*"
                 disabled={isFinished}
-                className="w-20 font-mono font-medium text-sm text-white bg-gym-800 border border-gym-700 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-gym-accent disabled:opacity-50"
+                className={`font-mono font-medium text-sm text-white bg-gym-800 border border-gym-700 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-gym-accent disabled:opacity-50 ${
+                  isOnTrainVariant ? 'w-16' : 'w-20'
+                }`}
                 aria-label={t('load')}
               />
               <select
                 value={loadUnit}
                 onChange={(e) => onLoadUnitChange(e.target.value)}
                 disabled={isFinished}
-                className="w-16 font-mono font-medium text-sm text-white bg-gym-800 border border-gym-700 rounded px-1 py-1 focus:outline-none focus:ring-2 focus:ring-gym-accent disabled:opacity-50"
+                className={`font-mono font-medium text-sm text-white bg-gym-800 border border-gym-700 rounded px-1 py-1 focus:outline-none focus:ring-2 focus:ring-gym-accent disabled:opacity-50 ${
+                  isOnTrainVariant ? 'w-14' : 'w-16'
+                }`}
                 aria-label={t('load_unit')}
               >
                 <option value="kg">{t('load_unit_kg')}</option>
@@ -188,7 +200,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
       </div>
 
       {/* Set Tracking */}
-      <div className="mt-4 pt-4 border-t border-gym-700">
+      <div className={`${isOnTrainVariant ? 'mt-2 pt-2' : 'mt-4 pt-4'} border-t border-gym-700`}>
         <div className="flex flex-wrap gap-3 items-center">
           <span className="text-xs font-semibold text-gym-500 uppercase mr-2">{t('sets')}</span>
           {Array.from({ length: workout.total_sets }).map((_, idx) => (
@@ -210,7 +222,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
       </div>
 
       {/* Annotation Input */}
-      <div className="mt-4 pt-4 border-t border-gym-700">
+      <div className={`${isOnTrainVariant ? 'mt-2 pt-2' : 'mt-4 pt-4'} border-t border-gym-700`}>
         <div className="flex items-start space-x-2">
           <div className="p-1.5 bg-gym-800 rounded text-gym-accent mt-1">
             <MessageSquare size={14} />
@@ -224,7 +236,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
               onChange={(e) => onAnnotationChange(e.target.value)}
               placeholder="..."
               className="w-full bg-gym-900/50 border border-gym-700/50 rounded-lg p-3 text-sm text-white placeholder-gym-600 focus:outline-none focus:ring-2 focus:ring-gym-accent focus:border-transparent resize-none transition-all"
-              rows={2}
+              rows={isOnTrainVariant ? 1 : 2}
               disabled={isFinished}
             />
           </div>

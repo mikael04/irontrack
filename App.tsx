@@ -22,8 +22,14 @@ const App: React.FC = () => {
     loadUnits,
     completionOrder,
     selection,
+    viewMode,
+    oneRmValues,
     isLoaded,
     toggleSet,
+    setViewMode,
+    updateOneRmValue,
+    recordExerciseSnapshot,
+    getLastExerciseSnapshot,
     updateAnnotation,
     updateRpeValue,
     updateLoadValue,
@@ -65,7 +71,13 @@ const App: React.FC = () => {
           loadValues={loadValues}
           loadUnits={loadUnits}
           completionOrder={completionOrder}
+          viewMode={viewMode}
+          oneRmValues={oneRmValues}
           onToggleSet={toggleSet}
+          onSetViewMode={setViewMode}
+          onUpdateOneRmValue={updateOneRmValue}
+          onRecordExerciseSnapshot={recordExerciseSnapshot}
+          onGetLastExerciseSnapshot={getLastExerciseSnapshot}
           onUpdateAnnotation={updateAnnotation}
           onUpdateRpeValue={updateRpeValue}
           onUpdateLoadValue={updateLoadValue}

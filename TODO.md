@@ -11,7 +11,89 @@
 
 # Features to be implemented
 
-## Add a new 1RM Section to the app
+
+## Major
+
+
+## Add a timestamp to the train
+
+So when I finish the exercise (the last set) it should save the date (day, month and year)
+
+Small tasks:
+1. Detect the transition from incomplete to complete when the last set is marked.
+2. Generate and store a completion timestamp for that exercise snapshot.
+3. Persist this timestamp together with the exercise history record.
+4. Show this timestamp in the compact "last time" card.
+
+## Minor
+### Modify the prep column
+
+The prep column for the first exercise should use the text in it and calculate the weights, use the same row design just add the weight on the right side in parenthesis.
+
+# Implemented features
+
+## Major
+
+### Retrive the last time I did the same exercise
+
+I need to be able to find the last time I did the same exercise and show it in the card of the exercise beeing done. It should match the number of reps and it should shown the number of reps, number os series, weight and the date done.
+
+Small tasks:
+1. Normalize exercise names (trim, lowercase, remove accents) for stable matching.
+2. Search history globally by normalized exercise name.
+3. Select the most recent previous completed snapshot.
+4. Show reps, sets, load, RPE and date in the bottom compact card.
+5. Show the previous comment/log on a second line below metrics.
+
+
+### UI Revamp (OnTrain / NoTreino) task breakdown
+
+- Add a persisted view mode (`classic` / `ontrain`) in storage.
+- Add a header toggle at the left side of Config.
+- Localize toggle text: `OnTrain` in EN and `NoTreino` in PT-BR.
+- Keep current stacked cards unchanged for classic mode.
+- Build an OnTrain full-height exercise viewport.
+- Render current day exercises as horizontal snap carousel cards.
+- Keep set toggles, load, unit, RPE and note editing working in OnTrain.
+- Auto-advance to next exercise when the current one is fully completed.
+- Keep manual swipe navigation to go back/forward in carousel.
+- Add a compact top-right next-exercise preview (name + load).
+- Create exercise history types and storage map.
+- Save snapshot data only on completion transition.
+- Store snapshot fields: date, load, load unit, sets done/total, RPE, comment.
+- Query latest previous snapshot for the focused exercise.
+- Add compact bottom card with icons for load, sets and RPE in one line.
+- Add previous comment/log on a second line in that bottom card.
+- Add fallback text when no previous history exists.
+- Add i18n keys for new labels (toggle, next preview, last session, no history).
+- Run regression checks to ensure classic mode behavior is unchanged.
+- Validate persistence after app reload (mode + history retained).
+
+### UI Revamp Delta 2 (OnTrain layout + SQLite migration) task breakdown
+
+- Move the next exercise card to a top row above the active exercise card.
+- Move the exercise position indicator (`current/total` + remaining) to the same top row.
+- Remove next/indicator overlays from inside the active exercise card.
+- Hide Week and Day selector rows when OnTrain mode is active.
+- Recalculate available OnTrain card height from viewport minus header/top row/bottom history card.
+- Render active card in compact variant sized to available space.
+- Remove forced card-internal scroll in normal viewport use.
+- Keep bottom last-session card visible while training.
+- Keep classic mode layout behavior unchanged.
+- Add SQLite repository service for Android with Preferences fallback for web/dev.
+-  Create one-time auto migration from legacy Preferences to SQLite.
+- Move all persisted app state to SQLite source of truth:
+  - workouts, progress, annotations, rpe, load values + units, completion order, week/day selection, view mode, exercise history, one-rm values.
+- Persist 1RM values so app close/reopen keeps data.
+- Adapt import replace/merge to write/read SQLite.
+- Adapt export to read from SQLite.
+- Keep merge/export behavior contract unchanged.
+- Validate migration with existing user data (no data loss).
+- Validate OnTrain top row placement and hidden Week/Day rows.
+- Validate OnTrain fit behavior and auto-advance.
+- Validate classic mode regressions.
+
+### Add a new 1RM Section to the app
 
 Add a section that would be a button on the left side of weeks (so it should be, "1RM", "Week 1", ...,""). 
 This section will have three cards with each movement, "Squad", "Bench", "Deadlift" in english version, this need to have a select input weight (just "kg"), and on below lines it should have a percent of the movement total load.
@@ -20,28 +102,7 @@ So the seccond line should be: "20%", and this need to calculate (and dynamic ch
 Do that for 20%, 40%, 50%, 60%, 70%, 75%, 80%, 85%, 90%, 95%.
 Those cards should start contracted, on click it expand and show all those lines (from 100%, 20%, ..., 95%)
 
-## Add a timestamp to the train
-
-So when I finish the exercise (the last set) it should save the date (day, month and year)
-
-## Retrive the last time I did the same exercise
-
-I need to be able to find the last time I did the same exercise and show it in the card of the exercise beeing done. It should match the number of reps and it should shown the number of reps, number os series, weight and the date done.
-
-## Major
-
-- Change the UI
-
-## Minor
-### Add the prep column
-
-The prep column should appear bellow the lines "load, RPE, REPS and REST".
-
-# Implemented features
-
-## Major
-
-## Add a select to weight on exercises
+### Add a select to weight on exercises
 
 I want to be able to select which type of measure (kg, bars, or dumb., kg, barras ou halt.).
 And the weight, it should be a text input that only accepts integers (numbers from 0 to infinite).
@@ -80,6 +141,10 @@ Right now it reads if the file is exported as csv but renamed to ".txt", the app
 
 
 ## Minor
+
+### Add the prep column
+
+The prep column should appear bellow the lines "load, RPE, REPS and REST".
 
 ### Use TSV for export (decimal comma friendly)
 
