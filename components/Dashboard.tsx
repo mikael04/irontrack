@@ -24,6 +24,7 @@ import {
   ToggleLeft,
   ToggleRight,
   ChevronRight,
+  ChevronLeft,
   Dumbbell,
   Activity,
   MessageSquare,
@@ -384,6 +385,24 @@ export const Dashboard: React.FC<DashboardProps> = ({
   }, [currentDayWorkouts.length, goToOnTrainIndex, onTrainIndex]);
 
   const isOnTrainEnabled = viewMode === 'ontrain';
+  const previousViewModeRef = useRef<ViewMode>(viewMode);
+
+  useEffect(() => {
+    if (previousViewModeRef.current !== 'ontrain' && isOnTrainEnabled && currentDayWorkouts.length > 0) {
+      const firstIncompleteIndex = currentDayWorkouts.findIndex(w => {
+        const p = progress[w.id] || [];
+        const completedSets = p.filter(Boolean).length;
+        return completedSets < w.total_sets;
+      });
+
+      if (firstIncompleteIndex !== -1) {
+        goToOnTrainIndex(firstIncompleteIndex, 'auto');
+      } else {
+        goToOnTrainIndex(currentDayWorkouts.length - 1, 'auto');
+      }
+    }
+    previousViewModeRef.current = isOnTrainEnabled ? 'ontrain' : 'classic';
+  }, [viewMode, isOnTrainEnabled, currentDayWorkouts, goToOnTrainIndex]);
 
   useEffect(() => {
     if (isOnTrainEnabled) {
@@ -723,9 +742,30 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     <p className="text-gym-500">{t('no_exercises_found')}</p>
                   </div>
                 ) : (
-                  <div className="space-y-2">
+                    <div className="space-y-2">
                     <div ref={onTrainTopRowRef} className="flex items-stretch gap-2">
-                      <div className="rounded-lg border border-gym-700 bg-gym-900/85 px-3 py-2 min-w-[7rem]">
+                      <button
+                        onClick={() => goToOnTrainIndex(onTrainIndex - 1, 'smooth')}
+                        disabled={onTrainIndex === 0}
+                        className={`rounded-lg border border-gym-700 bg-gym-900/85 px-3 py-2 w-[35%] text-left transition-opacity ${
+                          onTrainIndex === 0 ? 'opacity-0 pointer-events-none' : 'hover:border-gym-500'
+                        }`}
+                      >
+                        <div className="flex items-center gap-1 text-[10px] uppercase tracking-wide text-gym-500 mb-1">
+                          <ChevronLeft size={12} />
+                          <span>{t('previous_exercise')}</span>
+                        </div>
+                        {onTrainIndex > 0 && currentDayWorkouts[onTrainIndex - 1] ? (
+                          <>
+                            <p className="text-xs font-semibold text-white truncate">{currentDayWorkouts[onTrainIndex - 1].exercise}</p>
+                            <p className="text-[11px] text-gym-400 truncate">{getWorkoutLoadLabel(currentDayWorkouts[onTrainIndex - 1])}</p>
+                          </>
+                        ) : (
+                          <p className="text-xs text-gym-500">{t('previous_exercise_none')}</p>
+                        )}
+                      </button>
+
+                      <div className="rounded-lg border border-gym-700 bg-gym-900/85 px-3 py-2 w-[30%]">
                         <div className="text-[10px] uppercase tracking-wide text-gym-500">{t('ontrain_progress')}</div>
                         <div className="mt-1 text-sm font-semibold text-white">
                           {onTrainIndex + 1}/{currentDayWorkouts.length}
@@ -733,7 +773,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
                         <div className="text-[11px] text-gym-500">{t('ontrain_remaining', { count: remainingOnTrain })}</div>
                       </div>
 
-                      <div className="rounded-lg border border-gym-700 bg-gym-900/85 px-3 py-2 flex-1 min-w-0">
+                      <button
+                        onClick={() => goToOnTrainIndex(onTrainIndex + 1, 'smooth')}
+                        disabled={onTrainIndex >= currentDayWorkouts.length - 1}
+                        className={`rounded-lg border border-gym-700 bg-gym-900/85 px-3 py-2 w-[35%] text-left transition-opacity ${
+                          onTrainIndex >= currentDayWorkouts.length - 1 ? 'opacity-0 pointer-events-none' : 'hover:border-gym-500'
+                        }`}
+                      >
                         <div className="flex items-center gap-1 text-[10px] uppercase tracking-wide text-gym-500 mb-1">
                           <ChevronRight size={12} />
                           <span>{t('next_exercise')}</span>
@@ -746,7 +792,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                         ) : (
                           <p className="text-xs text-gym-500">{t('next_exercise_none')}</p>
                         )}
-                      </div>
+                      </button>
                     </div>
 
                     <div className="rounded-2xl border border-gym-800/80 bg-gym-900/20 p-2" style={{ height: `${onTrainViewportHeight}px` }}>
@@ -773,6 +819,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                               loadUnit={loadUnits[workout.id] ?? workout.load_unit}
                               onLoadValueChange={(loadValue) => onUpdateLoadValue(workout.id, loadValue)}
                               onLoadUnitChange={(loadUnit) => onUpdateLoadUnit(workout.id, loadUnit)}
+                              oneRmValues={oneRmValues}
                             />
                           </div>
                         ))}
@@ -801,13 +848,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
                               </span>
                               <span className="inline-flex items-center gap-1">
                                 <CheckCircle size={12} className="text-emerald-500" />
-                                {onTrainLastSnapshot.setsDone}/{onTrainLastSnapshot.totalSets}
+                                SETS {onTrainLastSnapshot.setsDone}/{onTrainLastSnapshot.totalSets}
                               </span>
                               <span className="inline-flex items-center gap-1">
                                 <Activity size={12} className="text-amber-500" />
                                 RPE {onTrainLastSnapshot.rpe}
                               </span>
-                              <span className="text-gym-500">{onTrainLastSnapshot.reps}</span>
+                              <span className="text-gym-500">REPS {onTrainLastSnapshot.reps}</span>
                             </div>
                             <div className="mt-1 text-xs text-gym-400 truncate flex items-center gap-1">
                               <MessageSquare size={11} className="text-gym-500" />
@@ -847,6 +894,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     loadUnit={loadUnits[workout.id] ?? workout.load_unit}
                     onLoadValueChange={(loadValue) => onUpdateLoadValue(workout.id, loadValue)}
                     onLoadUnitChange={(loadUnit) => onUpdateLoadUnit(workout.id, loadUnit)}
+                    oneRmValues={oneRmValues}
                   />
                 ))}
 
@@ -876,6 +924,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                           loadUnit={loadUnits[workout.id] ?? workout.load_unit}
                           onLoadValueChange={(loadValue) => onUpdateLoadValue(workout.id, loadValue)}
                           onLoadUnitChange={(loadUnit) => onUpdateLoadUnit(workout.id, loadUnit)}
+                          oneRmValues={oneRmValues}
                         />
                       ))}
                     </div>

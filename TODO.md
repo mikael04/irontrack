@@ -20,15 +20,20 @@
 So when I finish the exercise (the last set) it should save the date (day, month and year)
 
 Small tasks:
-1. Detect the transition from incomplete to complete when the last set is marked.
-2. Generate and store a completion timestamp for that exercise snapshot.
-3. Persist this timestamp together with the exercise history record.
-4. Show this timestamp in the compact "last time" card.
+1. Detect the transition from incomplete to complete when the last set for the last exercise is marked.
+2. Persist this timestamp together with the exercise history record.
+3. Show this timestamp in the compact "last time" card.
 
 ## Minor
-### Modify the prep column
+### Modify the prep column (IMPLEMENTED)
 
 The prep column for the first exercise should use the text in it and calculate the weights, use the same row design just add the weight on the right side in parenthesis.
+
+**Implemented:**
+- Parses prep text patterns like "20%x8, 30%x6" 
+- Maps exercise names to 1RM movements (squat/bench/deadlift) supporting EN/PT keywords
+- Calculates actual weight using 1RM values and displays as "16kg x 8, 24kg x 6, 40kg x 4, 66kg x 3"
+- Falls back to original text if exercise doesn't match or 1RM not set
 
 # Implemented features
 
@@ -170,3 +175,11 @@ Show a notification when the app is open:
 - Display the current (the top one) elapsed rest time counting up (0:00, 0:01, 0:02...) sync with the cronometer from the app (if the cronometer is not active, just show 0:00)
 - Visual only, no sound or vibration
 - Click notification to open app
+
+## Minor Implemented
+
+### OnTrain mode improvements
+
+- When switching to OnTrain mode from classic, automatically shows the first exercise that is not fully completed (instead of always showing the first exercise)
+- Added Previous/Next buttons below the exercise carousel for manual navigation
+- Added SETS and REPS labels in the last session card for clarity

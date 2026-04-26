@@ -1,9 +1,10 @@
 import React, { useMemo } from 'react';
-import { WorkoutRaw } from '../types';
+import { WorkoutRaw, OneRmValues } from '../types';
 import { SetIndicator } from './SetIndicator';
 import { RestTimer } from './RestTimer';
 import { Dumbbell, Clock, Activity, BarChart2, CheckCircle2, MessageSquare, ListChecks } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { formatPrepWithWeights } from '../utils/prepCalculation';
 
 interface ExerciseCardProps {
   workout: WorkoutRaw;
@@ -21,6 +22,7 @@ interface ExerciseCardProps {
   onLoadValueChange: (loadValue: string) => void;
   onLoadUnitChange: (loadUnit: string) => void;
   variant?: 'classic' | 'ontrain';
+  oneRmValues?: OneRmValues;
 }
 
 export const ExerciseCard: React.FC<ExerciseCardProps> = ({
@@ -38,7 +40,8 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
   loadUnit,
   onLoadValueChange,
   onLoadUnitChange,
-  variant = 'classic'
+  variant = 'classic',
+  oneRmValues = { squat: '', bench: '', deadlift: '' }
 }) => {
   const { t } = useTranslation();
   const isOnTrainVariant = variant === 'ontrain';
@@ -55,6 +58,10 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
   const prepText = workout.prep?.trim() ?? '';
   const normalizedPrep = prepText.toLowerCase();
   const shouldShowPrep = prepText.length > 0 && normalizedPrep !== '-' && normalizedPrep !== 'na' && normalizedPrep !== 'n/a';
+  const formattedPrepText = useMemo(() => {
+    if (!shouldShowPrep) return prepText;
+    return formatPrepWithWeights(prepText, oneRmValues, workout.exercise);
+  }, [prepText, shouldShowPrep, oneRmValues, workout.exercise]);
   const normalizeLoadValue = (value: string): string => {
     const normalized = value.replace(/\./g, ',').replace(/[^0-9,]/g, '');
     const [whole, ...rest] = normalized.split(',');
@@ -193,7 +200,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
             </div>
             <div className="flex flex-col">
               <span className="text-xs text-gym-500 uppercase">{t('prep')}</span>
-              <span className="font-mono font-medium text-sm text-white">{prepText}</span>
+              <span className="font-mono font-medium text-sm text-white">{formattedPrepText}</span>
             </div>
           </div>
         )}
