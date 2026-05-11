@@ -1,6 +1,8 @@
 export type LoadUnit = 'kg' | 'bar' | 'dumb';
 export type ViewMode = 'classic' | 'ontrain';
 export type OneRmMovementId = 'squat' | 'bench' | 'deadlift';
+export type DoneStatus = 'done' | 'undone';
+export type WorkoutDoneStatus = Record<string, DoneStatus>;
 
 export interface OneRmValues {
   squat: string;

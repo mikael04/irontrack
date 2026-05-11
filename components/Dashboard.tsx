@@ -10,6 +10,7 @@ import {
   ExerciseHistoryEntry,
   OneRmValues,
   OneRmMovementId,
+  WorkoutDoneStatus,
 } from '../types';
 import { ExerciseCard } from './ExerciseCard';
 import { OneRmSection } from './OneRmSection';
@@ -27,7 +28,6 @@ import {
   ChevronLeft,
   Dumbbell,
   Activity,
-  MessageSquare,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
@@ -41,6 +41,7 @@ interface DashboardProps {
   completionOrder: string[];
   viewMode: ViewMode;
   oneRmValues: OneRmValues;
+  doneStatus: WorkoutDoneStatus;
   onToggleSet: (workoutId: string, setIndex: number, totalSets: number) => void;
   onSetViewMode: (mode: ViewMode) => void;
   onUpdateOneRmValue: (id: OneRmMovementId, value: string) => void;
@@ -60,6 +61,12 @@ interface DashboardProps {
     exerciseName: string,
     options?: { reps?: string; excludeWorkoutId?: string; beforeDate?: string }
   ) => ExerciseHistoryEntry | null;
+  onGetLastExerciseSnapshots: (
+    exerciseName: string,
+    options?: { reps?: string; excludeWorkoutId?: string; beforeDate?: string },
+    limit?: number,
+  ) => ExerciseHistoryEntry[];
+  onMarkExerciseUndone: (workoutId: string) => void;
   onUpdateAnnotation: (workoutId: string, annotation: string) => void;
   onUpdateRpeValue: (workoutId: string, rpeValue: string) => void;
   onUpdateLoadValue: (workoutId: string, loadValue: string) => void;
@@ -80,11 +87,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
   completionOrder,
   viewMode,
   oneRmValues,
+  doneStatus,
   onToggleSet,
   onSetViewMode,
   onUpdateOneRmValue,
   onRecordExerciseSnapshot,
   onGetLastExerciseSnapshot,
+  onGetLastExerciseSnapshots,
+  onMarkExerciseUndone,
   onUpdateAnnotation,
   onUpdateRpeValue,
   onUpdateLoadValue,
@@ -106,6 +116,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const onTrainHistoryRef = useRef<HTMLDivElement | null>(null);
   const carouselRef = useRef<HTMLDivElement | null>(null);
   const completionSnapshotRef = useRef<Record<string, boolean>>({});
+  const onTrainPositionedRef = useRef(false);
 
   const { t, i18n } = useTranslation();
 
@@ -124,12 +135,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
     workouts.forEach((workout) => {
       const workoutProgress = progress[workout.id] || [];
-      const isDone = workoutProgress.length >= workout.total_sets && workoutProgress.every(Boolean);
-      doneMap.set(workout.id, isDone);
+      const allSetsDone = workoutProgress.length >= workout.total_sets && workoutProgress.every(Boolean);
+      const isMarkedUndone = doneStatus[workout.id] === 'undone';
+      doneMap.set(workout.id, allSetsDone || isMarkedUndone);
     });
 
     return doneMap;
-  }, [workouts, progress]);
+  }, [workouts, progress, doneStatus]);
 
   const weekCompletion = useMemo(() => {
     const completionByWeek: Record<number, boolean> = {};
@@ -229,8 +241,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   const isWorkoutDone = useCallback((workout: WorkoutRaw) => {
     const sets = progress[workout.id] || [];
-    return sets.length >= workout.total_sets && sets.every(Boolean);
-  }, [progress]);
+    return (sets.length >= workout.total_sets && sets.every(Boolean)) || doneStatus[workout.id] === 'undone';
+  }, [progress, doneStatus]);
 
   const goToOnTrainIndex = useCallback((nextIndex: number, behavior: ScrollBehavior = 'smooth') => {
     if (currentDayWorkouts.length === 0) {
@@ -392,7 +404,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
       const firstIncompleteIndex = currentDayWorkouts.findIndex(w => {
         const p = progress[w.id] || [];
         const completedSets = p.filter(Boolean).length;
-        return completedSets < w.total_sets;
+        const allSetsDone = completedSets >= w.total_sets && p.every(Boolean);
+        const isUndone = doneStatus[w.id] === 'undone';
+        return !allSetsDone && !isUndone;
       });
 
       if (firstIncompleteIndex !== -1) {
@@ -400,9 +414,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
       } else {
         goToOnTrainIndex(currentDayWorkouts.length - 1, 'auto');
       }
+
+      onTrainPositionedRef.current = true;
     }
     previousViewModeRef.current = isOnTrainEnabled ? 'ontrain' : 'classic';
-  }, [viewMode, isOnTrainEnabled, currentDayWorkouts, goToOnTrainIndex]);
+  }, [viewMode, isOnTrainEnabled, currentDayWorkouts, goToOnTrainIndex, progress, doneStatus]);
 
   useEffect(() => {
     if (isOnTrainEnabled) {
@@ -436,30 +452,34 @@ export const Dashboard: React.FC<DashboardProps> = ({
   }, [isOnTrainEnabled, showOneRm, onTrainIndex, currentDayWorkouts.length, annotations]);
 
   useEffect(() => {
-    if (viewMode === 'ontrain' && !showOneRm) {
+    if (viewMode === 'ontrain' && !showOneRm && !onTrainPositionedRef.current) {
       goToOnTrainIndex(onTrainIndex, 'auto');
     }
+    // Reset the positioned flag after this effect runs
+    onTrainPositionedRef.current = false;
   }, [viewMode, showOneRm, goToOnTrainIndex, onTrainIndex]);
 
   useEffect(() => {
     let shouldAdvanceOnTrain = false;
     const focusedWorkout = currentDayWorkouts[onTrainIndex];
 
-    const nextCompletionState: Record<string, boolean> = {};
+    const nextFinishedState: Record<string, boolean> = {};
 
     workouts.forEach((workout) => {
       const workoutProgress = progress[workout.id] || [];
       const completedSets = workoutProgress.filter(Boolean).length;
-      const isDone = completedSets >= workout.total_sets && workoutProgress.length >= workout.total_sets && workoutProgress.every(Boolean);
+      const allSetsDone = completedSets >= workout.total_sets && workoutProgress.length >= workout.total_sets && workoutProgress.every(Boolean);
+      const isUndone = doneStatus[workout.id] === 'undone';
+      const isFinished = allSetsDone || isUndone;
 
-      nextCompletionState[workout.id] = isDone;
+      nextFinishedState[workout.id] = isFinished;
 
-      const previousIsDone = completionSnapshotRef.current[workout.id];
-      if (previousIsDone === undefined) {
+      const previousIsFinished = completionSnapshotRef.current[workout.id];
+      if (previousIsFinished === undefined) {
         return;
       }
 
-      if (!previousIsDone && isDone) {
+      if (!previousIsFinished && isFinished) {
         onRecordExerciseSnapshot({
           sourceWorkoutId: workout.id,
           exerciseName: workout.exercise,
@@ -479,7 +499,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       }
     });
 
-    completionSnapshotRef.current = nextCompletionState;
+    completionSnapshotRef.current = nextFinishedState;
 
     if (shouldAdvanceOnTrain && onTrainIndex < currentDayWorkouts.length - 1) {
       window.setTimeout(() => {
@@ -489,6 +509,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   }, [
     workouts,
     progress,
+    doneStatus,
     loadValues,
     loadUnits,
     rpeValues,
@@ -510,7 +531,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
     currentDayWorkouts.forEach(w => {
       const p = progress[w.id] || [];
-      const isDone = p.length >= w.total_sets && p.every(Boolean);
+      const setsDone = p.length >= w.total_sets && p.every(Boolean);
+      const isDone = setsDone || doneStatus[w.id] === 'undone';
 
       if (isDone) {
         finished.push(w);
@@ -526,22 +548,22 @@ export const Dashboard: React.FC<DashboardProps> = ({
     });
 
     return { activeWorkouts: active, finishedWorkouts: finished };
-  }, [currentDayWorkouts, progress, completionOrder]);
+  }, [currentDayWorkouts, progress, completionOrder, doneStatus]);
 
   const onTrainCurrentWorkout = currentDayWorkouts[onTrainIndex];
   const onTrainNextWorkout = onTrainIndex < currentDayWorkouts.length - 1 ? currentDayWorkouts[onTrainIndex + 1] : null;
   const remainingOnTrain = Math.max(0, currentDayWorkouts.length - (onTrainIndex + 1));
 
-  const onTrainLastSnapshot = useMemo(() => {
+  const onTrainLastSnapshots = useMemo(() => {
     if (!onTrainCurrentWorkout) {
-      return null;
+      return [];
     }
 
-    return onGetLastExerciseSnapshot(onTrainCurrentWorkout.exercise, {
+    return onGetLastExerciseSnapshots(onTrainCurrentWorkout.exercise, {
       reps: onTrainCurrentWorkout.reps,
       excludeWorkoutId: onTrainCurrentWorkout.id,
-    });
-  }, [onGetLastExerciseSnapshot, onTrainCurrentWorkout]);
+    }, 3);
+  }, [onGetLastExerciseSnapshots, onTrainCurrentWorkout]);
 
   const handleSetToggle = (workoutId: string, setIndex: number, totalSets: number) => {
     onToggleSet(workoutId, setIndex, totalSets);
@@ -820,6 +842,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
                               onLoadValueChange={(loadValue) => onUpdateLoadValue(workout.id, loadValue)}
                               onLoadUnitChange={(loadUnit) => onUpdateLoadUnit(workout.id, loadUnit)}
                               oneRmValues={oneRmValues}
+                              onMarkUndone={() => onMarkExerciseUndone(workout.id)}
+                              doneStatus={doneStatus[workout.id] ?? null}
                             />
                           </div>
                         ))}
@@ -830,37 +854,39 @@ export const Dashboard: React.FC<DashboardProps> = ({
                       <div ref={onTrainHistoryRef} className="rounded-xl border border-gym-700 bg-gym-900/88 px-3 py-2 shadow-lg">
                         <div className="flex items-center justify-between mb-1.5">
                           <span className="text-[10px] uppercase tracking-wide text-gym-500 font-semibold">
-                            {t('last_session')}
+                            {t('last_sessions')}
                           </span>
-                          {onTrainLastSnapshot && (
-                            <span className="text-[10px] text-gym-500">
-                              {formatHistoryDate(onTrainLastSnapshot.completedAt)}
-                            </span>
-                          )}
                         </div>
 
-                        {onTrainLastSnapshot ? (
-                          <>
-                            <div className="flex items-center gap-3 text-xs text-gym-300 whitespace-nowrap overflow-hidden">
-                              <span className="inline-flex items-center gap-1">
-                                <Dumbbell size={12} className="text-gym-accent" />
-                                {onTrainLastSnapshot.loadValue} {onTrainLastSnapshot.loadUnit}
-                              </span>
-                              <span className="inline-flex items-center gap-1">
-                                <CheckCircle size={12} className="text-emerald-500" />
-                                SETS {onTrainLastSnapshot.setsDone}/{onTrainLastSnapshot.totalSets}
-                              </span>
-                              <span className="inline-flex items-center gap-1">
-                                <Activity size={12} className="text-amber-500" />
-                                RPE {onTrainLastSnapshot.rpe}
-                              </span>
-                              <span className="text-gym-500">REPS {onTrainLastSnapshot.reps}</span>
-                            </div>
-                            <div className="mt-1 text-xs text-gym-400 truncate flex items-center gap-1">
-                              <MessageSquare size={11} className="text-gym-500" />
-                              <span>{onTrainLastSnapshot.comment || t('last_session_no_comment')}</span>
-                            </div>
-                          </>
+                        {onTrainLastSnapshots.length > 0 ? (
+                          <div className="space-y-1.5">
+                            {onTrainLastSnapshots.map((snapshot, idx) => (
+                              <div
+                                key={snapshot.id}
+                                className={idx > 0 ? 'border-t border-gym-800/60 pt-1.5' : ''}
+                              >
+                                <div className="flex items-center justify-between mb-0.5">
+                                  <span className="text-[9px] text-gym-500">
+                                    {formatHistoryDate(snapshot.completedAt)}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2 text-xs text-gym-300 whitespace-nowrap overflow-hidden">
+                                  <span className="inline-flex items-center gap-1">
+                                    <Dumbbell size={11} className="text-gym-accent" />
+                                    {snapshot.loadValue} {snapshot.loadUnit}
+                                  </span>
+                                  <span className="inline-flex items-center gap-1">
+                                    <CheckCircle size={11} className="text-emerald-500" />
+                                    {snapshot.setsDone}/{snapshot.totalSets}
+                                  </span>
+                                  <span className="inline-flex items-center gap-1">
+                                    <Activity size={11} className="text-amber-500" />
+                                    {snapshot.rpe}
+                                  </span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
                         ) : (
                           <div className="text-xs text-gym-500">{t('last_session_empty')}</div>
                         )}
@@ -895,6 +921,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     onLoadValueChange={(loadValue) => onUpdateLoadValue(workout.id, loadValue)}
                     onLoadUnitChange={(loadUnit) => onUpdateLoadUnit(workout.id, loadUnit)}
                     oneRmValues={oneRmValues}
+                    onMarkUndone={() => onMarkExerciseUndone(workout.id)}
+                    doneStatus={doneStatus[workout.id] ?? null}
                   />
                 ))}
 
@@ -925,6 +953,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                           onLoadValueChange={(loadValue) => onUpdateLoadValue(workout.id, loadValue)}
                           onLoadUnitChange={(loadUnit) => onUpdateLoadUnit(workout.id, loadUnit)}
                           oneRmValues={oneRmValues}
+                          doneStatus={doneStatus[workout.id] ?? null}
                         />
                       ))}
                     </div>

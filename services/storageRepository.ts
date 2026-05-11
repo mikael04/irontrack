@@ -19,6 +19,7 @@ export const STORAGE_KEYS = {
   viewMode: 'irontrack_view_mode',
   exerciseHistory: 'irontrack_exercise_history',
   oneRmValues: 'irontrack_one_rm_values',
+  doneStatus: 'irontrack_done_status',
 } as const;
 
 export const LEGACY_PREFERENCES_KEYS: string[] = [
@@ -33,6 +34,7 @@ export const LEGACY_PREFERENCES_KEYS: string[] = [
   STORAGE_KEYS.viewMode,
   STORAGE_KEYS.exerciseHistory,
   STORAGE_KEYS.oneRmValues,
+  STORAGE_KEYS.doneStatus,
 ];
 
 class StorageRepository {

@@ -39,6 +39,39 @@ The prep column for the first exercise should use the text in it and calculate t
 
 ## Major
 
+### Mark Exercise as Not Done / Skipped + Auto-Done
+
+Add an option below the series row to mark an exercise as "not done" (skipped). Clicking it marks the exercise as finished (jumps to next in OnTrain) while saving a `doneStatus` column (`done` | `undone`) in the database. If all series are completed manually, the exercise is auto-marked as `done`.
+
+**Implemented:**
+- New storage key `irontrack_done_status` (Record<workoutId, 'done' | 'undone'>)
+- `markExerciseUndone()` and `markExerciseDone()` functions in useWorkoutStorage
+- `toggleSet` auto-sets `doneStatus = 'done'` when all sets become complete
+- `isWorkoutDone` considers undone as finished (for navigation and UI)
+- ExerciseCard: "Mark as not done" button below sets (visible when active)
+- ExerciseCard: amber XCircle + "Skipped" indicator when finished with undone status
+- Snapshot recording triggers for both done and undone transitions
+- OnTrain auto-advance works for both done and undone
+
+### Last Time Did — Last 3 Sessions Card
+
+Show the last 3 times an exercise was performed (instead of just the last 1) in the OnTrain bottom card.
+
+**Implemented:**
+- `getLastExerciseSnapshots()` function returning up to N snapshots (default 3)
+- Updated OnTrain history card: 3 compact rows with date, load, sets, RPE
+- i18n key `last_sessions` → "Last Time Did" / "Últimas Vezes"
+
+### OnTrain First Exercise Bug Fix
+
+When switching to OnTrain mode, the correct current exercise is now shown (no race condition between two competing effects).
+
+**Implemented:**
+- Added `onTrainPositionedRef` to prevent stale-index override on mode switch
+- `firstIncompleteIndex` now skips both fully-done AND undone exercises
+- Added `progress` and `doneStatus` to the mode-switch effect dependencies
+
+
 ### Retrive the last time I did the same exercise
 
 I need to be able to find the last time I did the same exercise and show it in the card of the exercise beeing done. It should match the number of reps and it should shown the number of reps, number os series, weight and the date done.

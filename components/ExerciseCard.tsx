@@ -1,8 +1,8 @@
 import React, { useMemo } from 'react';
-import { WorkoutRaw, OneRmValues } from '../types';
+import { WorkoutRaw, OneRmValues, DoneStatus } from '../types';
 import { SetIndicator } from './SetIndicator';
 import { RestTimer } from './RestTimer';
-import { Dumbbell, Clock, Activity, BarChart2, CheckCircle2, MessageSquare, ListChecks } from 'lucide-react';
+import { Dumbbell, Clock, Activity, BarChart2, CheckCircle2, MessageSquare, ListChecks, XCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { formatPrepWithWeights } from '../utils/prepCalculation';
 
@@ -23,6 +23,8 @@ interface ExerciseCardProps {
   onLoadUnitChange: (loadUnit: string) => void;
   variant?: 'classic' | 'ontrain';
   oneRmValues?: OneRmValues;
+  onMarkUndone?: () => void;
+  doneStatus?: DoneStatus | null;
 }
 
 export const ExerciseCard: React.FC<ExerciseCardProps> = ({
@@ -41,7 +43,9 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
   onLoadValueChange,
   onLoadUnitChange,
   variant = 'classic',
-  oneRmValues = { squat: '', bench: '', deadlift: '' }
+  oneRmValues = { squat: '', bench: '', deadlift: '' },
+  onMarkUndone,
+  doneStatus,
 }) => {
   const { t } = useTranslation();
   const isOnTrainVariant = variant === 'ontrain';
@@ -98,8 +102,8 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
           </p>
         </div>
         {isFinished && (
-          <div className="text-gym-600">
-            <CheckCircle2 size={24} />
+          <div className={doneStatus === 'undone' ? 'text-amber-500' : 'text-gym-600'}>
+            {doneStatus === 'undone' ? <XCircle size={24} /> : <CheckCircle2 size={24} />}
           </div>
         )}
       </div>
@@ -227,6 +231,29 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
           )}
         </div>
       </div>
+
+      {/* Mark as Not Done */}
+      {!isFinished && onMarkUndone && (
+        <div className={`${isOnTrainVariant ? 'mt-2 pt-2' : 'mt-3 pt-3'} border-t border-gym-700`}>
+          <button
+            onClick={onMarkUndone}
+            className="flex items-center gap-1.5 text-xs text-gym-500 hover:text-amber-500 transition-colors"
+          >
+            <XCircle size={13} />
+            <span>{t('mark_not_done')}</span>
+          </button>
+        </div>
+      )}
+
+      {/* Undone Indicator when finished with undone status */}
+      {isFinished && doneStatus === 'undone' && (
+        <div className={`${isOnTrainVariant ? 'mt-2 pt-2' : 'mt-3 pt-3'} border-t border-gym-700`}>
+          <div className="flex items-center gap-1.5 text-xs text-amber-500">
+            <XCircle size={13} />
+            <span>{t('skipped')}</span>
+          </div>
+        </div>
+      )}
 
       {/* Annotation Input */}
       <div className={`${isOnTrainVariant ? 'mt-2 pt-2' : 'mt-4 pt-4'} border-t border-gym-700`}>

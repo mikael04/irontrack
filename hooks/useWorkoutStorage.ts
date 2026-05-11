@@ -12,6 +12,7 @@ import {
   ExerciseHistoryMap,
   OneRmValues,
   OneRmMovementId,
+  WorkoutDoneStatus,
 } from '../types';
 import { generateExportData, saveCsvFile, ExportData } from '../utils/exportCsv';
 import { normalizeLoadUnit } from '../utils/loadUnit';
@@ -84,6 +85,7 @@ export const useWorkoutStorage = () => {
   const [viewMode, setViewModeState] = useState<ViewMode>('classic');
   const [exerciseHistory, setExerciseHistory] = useState<ExerciseHistoryMap>({});
   const [oneRmValues, setOneRmValues] = useState<OneRmValues>(DEFAULT_ONE_RM_VALUES);
+  const [doneStatus, setDoneStatus] = useState<WorkoutDoneStatus>({});
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
@@ -103,6 +105,7 @@ export const useWorkoutStorage = () => {
           storedViewMode,
           storedExerciseHistory,
           storedOneRmValues,
+          storedDoneStatus,
         ] = await Promise.all([
           storageRepository.get<WorkoutRaw[]>(STORAGE_KEYS.data),
           storageRepository.get<WorkoutProgress>(STORAGE_KEYS.progress),
@@ -115,6 +118,7 @@ export const useWorkoutStorage = () => {
           storageRepository.get<ViewMode>(STORAGE_KEYS.viewMode),
           storageRepository.get<ExerciseHistoryMap>(STORAGE_KEYS.exerciseHistory),
           storageRepository.get<OneRmValues>(STORAGE_KEYS.oneRmValues),
+          storageRepository.get<WorkoutDoneStatus>(STORAGE_KEYS.doneStatus),
         ]);
 
         if (storedData) {
@@ -179,6 +183,15 @@ export const useWorkoutStorage = () => {
             deadlift: storedOneRmValues.deadlift ?? '',
           });
         }
+        if (storedDoneStatus && typeof storedDoneStatus === 'object') {
+          const cleaned: WorkoutDoneStatus = {};
+          Object.entries(storedDoneStatus).forEach(([key, value]) => {
+            if (value === 'done' || value === 'undone') {
+              cleaned[key] = value;
+            }
+          });
+          setDoneStatus(cleaned);
+        }
       } catch (e) {
         console.error('Failed to load workout data', e);
       } finally {
@@ -217,7 +230,40 @@ export const useWorkoutStorage = () => {
         return newOrder;
       });
 
+      if (isComplete) {
+        setDoneStatus((prevDone) => {
+          if (prevDone[workoutId] === 'done') return prevDone;
+          const nextDone = { ...prevDone, [workoutId]: 'done' as const };
+          void persistKey(STORAGE_KEYS.doneStatus, nextDone);
+          return nextDone;
+        });
+      }
+
       return newProgress;
+    });
+  }, []);
+
+  const markExerciseUndone = useCallback((workoutId: string) => {
+    setDoneStatus((prev) => {
+      const nextDone = { ...prev, [workoutId]: 'undone' as const };
+      void persistKey(STORAGE_KEYS.doneStatus, nextDone);
+      return nextDone;
+    });
+
+    setCompletionOrder((prevOrder) => {
+      if (prevOrder.includes(workoutId)) return prevOrder;
+      const newOrder = [...prevOrder, workoutId];
+      void persistKey(STORAGE_KEYS.completionOrder, newOrder);
+      return newOrder;
+    });
+  }, []);
+
+  const markExerciseDone = useCallback((workoutId: string) => {
+    setDoneStatus((prev) => {
+      if (prev[workoutId] === 'done') return prev;
+      const nextDone = { ...prev, [workoutId]: 'done' as const };
+      void persistKey(STORAGE_KEYS.doneStatus, nextDone);
+      return nextDone;
     });
   }, []);
 
@@ -312,6 +358,43 @@ export const useWorkoutStorage = () => {
     return filteredEntries[0];
   }, [exerciseHistory]);
 
+  const getLastExerciseSnapshots = useCallback((exerciseName: string, options: LastExerciseSnapshotOptions = {}, limit: number = 3): ExerciseHistoryEntry[] => {
+    const exerciseNameKey = normalizeExerciseName(exerciseName);
+    if (!exerciseNameKey) {
+      return [];
+    }
+
+    const allEntries = exerciseHistory[exerciseNameKey] || [];
+    if (allEntries.length === 0) {
+      return [];
+    }
+
+    const beforeDateMs = options.beforeDate ? new Date(options.beforeDate).getTime() : null;
+
+    const filteredEntries = allEntries.filter((entry) => {
+      if (options.excludeWorkoutId && entry.sourceWorkoutId === options.excludeWorkoutId) {
+        return false;
+      }
+      if (beforeDateMs && new Date(entry.completedAt).getTime() >= beforeDateMs) {
+        return false;
+      }
+      return true;
+    });
+
+    if (filteredEntries.length === 0) {
+      return [];
+    }
+
+    if (options.reps) {
+      const sameReps = filteredEntries.filter((entry) => entry.reps === options.reps);
+      if (sameReps.length > 0) {
+        return sameReps.slice(0, limit);
+      }
+    }
+
+    return filteredEntries.slice(0, limit);
+  }, [exerciseHistory]);
+
   const updateAnnotation = useCallback((workoutId: string, annotation: string) => {
     setAnnotations((prev) => {
       const newAnnotations = { ...prev, [workoutId]: annotation };
@@ -375,6 +458,7 @@ export const useWorkoutStorage = () => {
         STORAGE_KEYS.completionOrder,
         STORAGE_KEYS.selection,
         STORAGE_KEYS.exerciseHistory,
+        STORAGE_KEYS.doneStatus,
       ]);
 
       setWorkouts(normalizedWorkouts);
@@ -386,6 +470,7 @@ export const useWorkoutStorage = () => {
       setCompletionOrder([]);
       setSelection({ week: null, day: null });
       setExerciseHistory({});
+      setDoneStatus({});
       await persistKey(STORAGE_KEYS.data, normalizedWorkouts);
       await persistKey(STORAGE_KEYS.loadUnits, importedLoadUnits);
     } else {
@@ -471,6 +556,7 @@ export const useWorkoutStorage = () => {
       STORAGE_KEYS.completionOrder,
       STORAGE_KEYS.selection,
       STORAGE_KEYS.exerciseHistory,
+      STORAGE_KEYS.doneStatus,
     ]);
     setWorkouts([]);
     setProgress({});
@@ -481,6 +567,7 @@ export const useWorkoutStorage = () => {
     setCompletionOrder([]);
     setSelection({ week: null, day: null });
     setExerciseHistory({});
+    setDoneStatus({});
   }, []);
 
   return {
@@ -494,12 +581,16 @@ export const useWorkoutStorage = () => {
     selection,
     viewMode,
     oneRmValues,
+    doneStatus,
     isLoaded,
     toggleSet,
     setViewMode,
     updateOneRmValue,
     recordExerciseSnapshot,
     getLastExerciseSnapshot,
+    getLastExerciseSnapshots,
+    markExerciseUndone,
+    markExerciseDone,
     updateAnnotation,
     updateRpeValue,
     updateLoadValue,

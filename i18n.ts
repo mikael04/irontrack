@@ -58,7 +58,10 @@ const resources = {
             "previous_exercise_none": "No previous exercise",
             "last_session": "Last Session",
             "last_session_empty": "No previous session found for this exercise yet.",
-            "last_session_no_comment": "No comment."
+            "last_session_no_comment": "No comment.",
+            "last_sessions": "Last Time Did",
+            "mark_not_done": "Mark as not done",
+            "skipped": "Skipped"
         }
     },
     'pt-BR': {
@@ -117,7 +120,10 @@ const resources = {
             "previous_exercise_none": "Sem exercício anterior",
             "last_session": "Última Sessão",
             "last_session_empty": "Ainda não há sessão anterior para este exercício.",
-            "last_session_no_comment": "Sem comentário."
+            "last_session_no_comment": "Sem comentário.",
+            "last_sessions": "Últimas Vezes",
+            "mark_not_done": "Marcar como não feito",
+            "skipped": "Pulado"
         }
     }
 };
