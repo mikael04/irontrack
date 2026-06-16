@@ -31,6 +31,7 @@ It was built primarily using LLM-assisted "vibe coding," even though I use React
 - **Icons:** Lucide React
 - **Localization:** i18next / react-i18next
 - **CSV/TSV parsing:** PapaParse
+  ~
 
 ## Prerequisites
 
