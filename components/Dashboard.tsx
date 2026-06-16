@@ -29,6 +29,7 @@ import {
   Dumbbell,
   Activity,
   MessageSquare,
+  BarChart2,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
@@ -889,6 +890,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
                                   <span className="inline-flex items-center gap-1">
                                     <CheckCircle size={11} className="text-emerald-500" />
                                     {snapshot.setsDone}/{snapshot.totalSets}
+                                  </span>
+                                  <span className="inline-flex items-center gap-1">
+                                    <BarChart2 size={11} className="text-blue-500" />
+                                    {snapshot.reps}
                                   </span>
                                   <span className="inline-flex items-center gap-1">
                                     <Activity size={11} className="text-amber-500" />

@@ -6,6 +6,7 @@
   `cd android && ./gradlew assembleRelease && cd ..`
 - After building use adb to install:
   `adb install -r android/app/build/outputs/apk/release/app-release.apk`
+- Copy this new version of app-release to the root
 
 # Bugs
 
@@ -247,6 +248,16 @@ When showing the last three times an exercise was performed in the OnTrain botto
 - When switching to OnTrain mode from classic, automatically shows the first exercise that is not fully completed (instead of always showing the first exercise)
 - Added Previous/Next buttons below the exercise carousel for manual navigation
 - Added SETS and REPS labels in the last session card for clarity
+
+### Show reps in OnTrain last-time card
+
+The OnTrain bottom "last time did" card was not displaying the number of reps performed in previous sessions.
+
+**Implemented:**
+
+- Added `BarChart2` icon import to `Dashboard.tsx`
+- Added reps metric to the compact history row (load, sets, reps, RPE)
+- Reps are read from `snapshot.reps` already stored in `ExerciseHistoryEntry`
 
 # Bugfix
 
