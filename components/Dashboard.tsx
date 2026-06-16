@@ -28,6 +28,7 @@ import {
   ChevronLeft,
   Dumbbell,
   Activity,
+  MessageSquare,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
@@ -108,6 +109,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [timerStartTime, setTimerStartTime] = useState<number | null>(null);
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
   const [showOneRm, setShowOneRm] = useState(false);
+  const [oneRmExpanded, setOneRmExpanded] = useState<Record<string, boolean>>({
+    squat: false,
+    bench: false,
+    deadlift: false
+  });
   const [onTrainIndex, setOnTrainIndex] = useState(0);
   const [onTrainViewportHeight, setOnTrainViewportHeight] = useState(360);
 
@@ -738,7 +744,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 <p className="text-gym-400 text-sm">{t('one_rm_subtitle')}</p>
               </div>
             </div>
-            <OneRmSection values={oneRmValues} onChangeValue={onUpdateOneRmValue} />
+            <OneRmSection
+              values={oneRmValues}
+              onChangeValue={onUpdateOneRmValue}
+              expanded={oneRmExpanded}
+              onToggleExpanded={(id) => setOneRmExpanded(prev => ({ ...prev, [id]: !prev[id] }))}
+            />
           </div>
         ) : (
           <>
@@ -884,6 +895,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
                                     {snapshot.rpe}
                                   </span>
                                 </div>
+                                {snapshot.comment.trim().length > 0 && (
+                                  <div className="flex items-center gap-1 mt-0.5 text-[10px] text-gym-400">
+                                    <MessageSquare size={10} className="text-gym-500 shrink-0" />
+                                    <span className="truncate">{snapshot.comment.trim()}</span>
+                                  </div>
+                                )}
                               </div>
                             ))}
                           </div>

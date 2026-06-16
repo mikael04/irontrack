@@ -1,5 +1,5 @@
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
-import { WorkoutRaw, WorkoutProgress, WorkoutAnnotations, WorkoutRPEValues, WorkoutLoadValues, WorkoutLoadUnits, CSVRow } from '../types';
+import { WorkoutRaw, WorkoutProgress, WorkoutAnnotations, WorkoutRPEValues, WorkoutLoadValues, WorkoutLoadUnits, WorkoutDoneStatus, CSVRow } from '../types';
 import { formatLoadUnitForExport, normalizeLoadUnit } from './loadUnit';
 
 export interface ExportData {
@@ -9,6 +9,7 @@ export interface ExportData {
   rpeValues: WorkoutRPEValues;
   loadValues: WorkoutLoadValues;
   loadUnits: WorkoutLoadUnits;
+  doneStatus: WorkoutDoneStatus;
 }
 
 const TSV_DELIMITER = '\t';
@@ -27,14 +28,18 @@ const getCompletedSets = (workoutId: string, progress: WorkoutProgress, totalSet
   return `${completed}/${totalSets}`;
 };
 
-const isWorkoutComplete = (workoutId: string, progress: WorkoutProgress, totalSets: number): string => {
+const getWorkoutStatus = (workoutId: string, progress: WorkoutProgress, totalSets: number, doneStatus: WorkoutDoneStatus): string => {
+  // Check doneStatus first — "undone" (skipped) takes priority
+  if (doneStatus[workoutId] === 'undone') return 'Pulado';
+  // Then check if all sets are complete
   const sets = progress[workoutId] || [];
   const completed = sets.filter(Boolean).length;
-  return completed >= totalSets ? 'Sim' : 'Não';
+  if (completed >= totalSets) return 'Sim';
+  return 'Não';
 };
 
 export const generateExportData = (data: ExportData): string => {
-  const { workouts, progress, annotations, rpeValues, loadValues, loadUnits } = data;
+  const { workouts, progress, annotations, rpeValues, loadValues, loadUnits, doneStatus } = data;
 
   const headers = [
     'Semana',
@@ -57,7 +62,7 @@ export const generateExportData = (data: ExportData): string => {
 
   const rows: CSVRow[] = workouts.map(workout => {
     const completedSets = getCompletedSets(workout.id, progress, workout.total_sets);
-    const isComplete = isWorkoutComplete(workout.id, progress, workout.total_sets);
+    const status = getWorkoutStatus(workout.id, progress, workout.total_sets, doneStatus);
     const annotation = annotations[workout.id] || '';
     // Usa o RPE selecionado pelo usuário, ou o padrão do workout se não tiver sido alterado
     const userRpe = rpeValues[workout.id];
@@ -82,7 +87,7 @@ export const generateExportData = (data: ExportData): string => {
       load_unit_selected: loadUnit,
       rpe: rpe,
       rest: workout.rest,
-      concluido: isComplete,
+      concluido: status,
       series_feitas: completedSets,
       anotacao: annotation,
     };
@@ -130,10 +135,13 @@ export const saveCsvFile = async (csvContent: string, fileName: string = 'irontr
       console.log('Permission request result:', result);
     }
 
+    // Prepend UTF-8 BOM so Google Sheets / Excel detect encoding correctly
+    const bomContent = '\uFEFF' + csvContent;
+
     // Try writing to Documents directory first (more reliable)
     await Filesystem.writeFile({
       path: finalFileName,
-      data: csvContent,
+      data: bomContent,
       directory: Directory.Documents,
       encoding: Encoding.UTF8,
     });

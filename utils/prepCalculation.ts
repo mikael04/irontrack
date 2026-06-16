@@ -15,7 +15,7 @@ const normalizeText = (value: string): string => {
 
 const SQUAT_KEYWORDS = ['squat', 'agachamento', 'agachar', 'agach'];
 const BENCH_KEYWORDS = ['bench', 'supino', 'press'];
-const DEADLIFT_KEYWORDS = ['deadlift', 'levantamento terra', 'levantamento', 'terra', 'stiff', 'dead'];
+const DEADLIFT_KEYWORDS = ['deadlift', 'levantamento terra', 'terra', 'stiff', 'dead'];
 
 export const mapExerciseToMovement = (exerciseName: string): OneRmMovementId | null => {
   const normalized = normalizeText(exerciseName);
@@ -75,15 +75,18 @@ export const formatPrepWithWeights = (prepText: string, oneRmValues: OneRmValues
     return prepText;
   }
 
-  const sets = parsePrepText(prepText);
-  if (sets.length === 0) {
-    return prepText;
-  }
-
-  const formattedSets = sets.map(set => {
-    const calculatedWeight = (oneRm * set.percent) / 100;
-    return `${formatLoadValue(calculatedWeight)}kg x ${set.reps}`;
+  // Replace each NN% occurrence with the calculated weight in kg
+  let result = prepText.replace(/(\d+)%/g, (_match, percentStr) => {
+    const percent = parseInt(percentStr, 10);
+    const weight = (oneRm * percent) / 100;
+    return `${formatLoadValue(weight)}kg`;
   });
 
-  return formattedSets.join(', ');
+  // Normalize × to x and add spaces around separators
+  result = result.replace(/×/g, 'x');
+  while (/([a-zA-Z0-9])(x)([a-zA-Z0-9])/.test(result)) {
+    result = result.replace(/([a-zA-Z0-9])(x)([a-zA-Z0-9])/g, '$1 x $3');
+  }
+
+  return result;
 };

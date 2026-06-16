@@ -3,7 +3,7 @@ import { useWorkoutStorage } from './hooks/useWorkoutStorage';
 import { ImportScreen } from './components/ImportScreen';
 import { Dashboard } from './components/Dashboard';
 import { Activity } from 'lucide-react';
-import { WorkoutRaw, ImportMode } from './types';
+import { ImportMode, ParsedImportData } from './types';
 import { NotificationTimer } from './utils/notification';
 
 const App: React.FC = () => {
@@ -49,7 +49,7 @@ const App: React.FC = () => {
     clearData();
   }, [clearData]);
 
-  const handleImport = useCallback((data: WorkoutRaw[], mode: ImportMode) => {
+  const handleImport = useCallback((data: ParsedImportData, mode: ImportMode) => {
     importWorkouts(data, mode);
     setIsReImport(false);
   }, [importWorkouts]);

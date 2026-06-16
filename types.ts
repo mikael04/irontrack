@@ -48,6 +48,13 @@ export interface CSVRow {
 
 export type ImportMode = 'replace' | 'merge';
 
+export interface ParsedImportData {
+  workouts: WorkoutRaw[];
+  progress: WorkoutProgress;
+  annotations: WorkoutAnnotations;
+  doneStatus: WorkoutDoneStatus;
+}
+
 export type WorkoutProgress = Record<string, boolean[]>;
 
 // Armazena anotações para cada exercício (workoutId -> texto da anotação)

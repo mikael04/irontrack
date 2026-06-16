@@ -13,6 +13,7 @@ import {
   OneRmValues,
   OneRmMovementId,
   WorkoutDoneStatus,
+  ParsedImportData,
 } from '../types';
 import { generateExportData, saveCsvFile, ExportData } from '../utils/exportCsv';
 import { normalizeLoadUnit } from '../utils/loadUnit';
@@ -33,6 +34,91 @@ const normalizeExerciseName = (value: string): string => {
     .replace(/[\u0300-\u036f]/g, '')
     .trim()
     .toLowerCase();
+};
+
+interface BuildHistoryInput {
+  workouts: WorkoutRaw[];
+  progress: WorkoutProgress;
+  annotations: WorkoutAnnotations;
+  rpeValues: WorkoutRPEValues;
+  loadValues: WorkoutLoadValues;
+  loadUnits: WorkoutLoadUnits;
+  doneStatus: WorkoutDoneStatus;
+  baseHistory: ExerciseHistoryMap;
+  completedAt: string;
+  skipWorkoutIds?: Set<string>;
+}
+
+const buildImportedExerciseHistory = (input: BuildHistoryInput): ExerciseHistoryMap => {
+  const { workouts, progress, annotations, rpeValues, loadValues, loadUnits, doneStatus, baseHistory, completedAt, skipWorkoutIds } = input;
+  const next: ExerciseHistoryMap = { ...baseHistory };
+
+  const hasMatchingEntry = (exerciseNameKey: string, candidate: ExerciseHistoryEntry): boolean => {
+    const list = next[exerciseNameKey] || [];
+    return list.some((entry) =>
+      entry.exerciseName === candidate.exerciseName &&
+      entry.reps === candidate.reps &&
+      entry.loadValue === candidate.loadValue &&
+      entry.loadUnit === candidate.loadUnit &&
+      entry.setsDone === candidate.setsDone &&
+      entry.totalSets === candidate.totalSets &&
+      entry.rpe === candidate.rpe &&
+      entry.comment === candidate.comment,
+    );
+  };
+
+  workouts.forEach((workout) => {
+    if (skipWorkoutIds?.has(workout.id)) {
+      return;
+    }
+
+    const sets = progress[workout.id] || [];
+    const completedSets = sets.filter(Boolean).length;
+    const allSetsDone = sets.length >= workout.total_sets && sets.every(Boolean);
+    const status = doneStatus[workout.id];
+    const isFinished = allSetsDone || status === 'done' || status === 'undone';
+
+    if (!isFinished) {
+      return;
+    }
+
+    const exerciseNameKey = normalizeExerciseName(workout.exercise);
+    if (!exerciseNameKey) {
+      return;
+    }
+
+    const loadValue = (loadValues[workout.id] ?? workout.load_kg ?? '').trim() || '0';
+    const loadUnit = normalizeLoadUnit(loadUnits[workout.id] ?? workout.load_unit);
+    const rpe = (rpeValues[workout.id] ?? workout.rpe ?? '-').trim() || '-';
+    const comment = (annotations[workout.id] ?? '').trim();
+
+    const newEntry: ExerciseHistoryEntry = {
+      id: `${workout.id}_${completedAt}`,
+      sourceWorkoutId: workout.id,
+      exerciseName: workout.exercise.trim() || 'Unknown Exercise',
+      exerciseNameKey,
+      reps: workout.reps?.trim() || '-',
+      completedAt,
+      loadValue,
+      loadUnit,
+      setsDone: status === 'undone' ? 0 : completedSets,
+      totalSets: workout.total_sets,
+      rpe,
+      comment,
+    };
+
+    if (hasMatchingEntry(exerciseNameKey, newEntry)) {
+      return;
+    }
+
+    const updatedEntries = [...(next[exerciseNameKey] || []), newEntry]
+      .sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime())
+      .slice(0, 100);
+
+    next[exerciseNameKey] = updatedEntries;
+  });
+
+  return next;
 };
 
 interface SelectionState {
@@ -437,8 +523,11 @@ export const useWorkoutStorage = () => {
     });
   }, []);
 
-  const importWorkouts = useCallback(async (newWorkouts: WorkoutRaw[], mode: ImportMode = 'replace') => {
-    const normalizedWorkouts = newWorkouts.map(normalizeWorkout);
+  const importWorkouts = useCallback(async (data: ParsedImportData, mode: ImportMode = 'replace') => {
+    const normalizedWorkouts = data.workouts.map(normalizeWorkout);
+    const importedProgress = data.progress;
+    const importedAnnotations = data.annotations;
+    const importedDoneStatus = data.doneStatus;
     const importedLoadUnits: WorkoutLoadUnits = {};
 
     normalizedWorkouts.forEach((workout) => {
@@ -446,6 +535,18 @@ export const useWorkoutStorage = () => {
         importedLoadUnits[workout.id] = workout.load_unit_selected;
       }
     });
+
+    // Helper: remap keys from import-time IDs to final (normalized) IDs
+    const remapKeys = <T>(source: Record<string, T>): Record<string, T> => {
+      const result: Record<string, T> = {};
+      normalizedWorkouts.forEach((workout, index) => {
+        const oldId = data.workouts[index]?.id;
+        if (oldId && source[oldId] !== undefined) {
+          result[workout.id] = source[oldId];
+        }
+      });
+      return result;
+    };
 
     if (mode === 'replace') {
       await storageRepository.clearKeys([
@@ -461,42 +562,146 @@ export const useWorkoutStorage = () => {
         STORAGE_KEYS.doneStatus,
       ]);
 
+      // Remap parsed progress/annotations/doneStatus from import IDs to normalized IDs
+      const remappedProgress = remapKeys(importedProgress);
+      const remappedAnnotations = remapKeys(importedAnnotations);
+      const remappedDoneStatus = remapKeys(importedDoneStatus);
+
+      const importCompletedAt = new Date().toISOString();
+
+      // Derive completionOrder from imported progress / done status
+      const newCompletionOrder: string[] = normalizedWorkouts
+        .filter((w) => {
+          const prog = remappedProgress[w.id];
+          const allSetsDone = prog && prog.length > 0 && prog.every(Boolean);
+          const status = remappedDoneStatus[w.id];
+          return allSetsDone || status === 'done' || status === 'undone';
+        })
+        .map((w) => w.id);
+
+      // Rebuild exercise history from imported finished workouts so "last done" keeps working
+      const importedHistory = buildImportedExerciseHistory({
+        workouts: normalizedWorkouts,
+        progress: remappedProgress,
+        annotations: remappedAnnotations,
+        rpeValues: {},
+        loadValues: {},
+        loadUnits: importedLoadUnits,
+        doneStatus: remappedDoneStatus,
+        baseHistory: exerciseHistory,
+        completedAt: importCompletedAt,
+      });
+
       setWorkouts(normalizedWorkouts);
-      setProgress({});
-      setAnnotations({});
+      setProgress(remappedProgress);
+      setAnnotations(remappedAnnotations);
       setRpeValues({});
       setLoadValues({});
       setLoadUnits(importedLoadUnits);
-      setCompletionOrder([]);
+      setCompletionOrder(newCompletionOrder);
       setSelection({ week: null, day: null });
-      setExerciseHistory({});
-      setDoneStatus({});
+      setExerciseHistory(importedHistory);
+      setDoneStatus(remappedDoneStatus);
       await persistKey(STORAGE_KEYS.data, normalizedWorkouts);
+      await persistKey(STORAGE_KEYS.progress, remappedProgress);
+      await persistKey(STORAGE_KEYS.annotations, remappedAnnotations);
       await persistKey(STORAGE_KEYS.loadUnits, importedLoadUnits);
+      await persistKey(STORAGE_KEYS.doneStatus, remappedDoneStatus);
+      await persistKey(STORAGE_KEYS.completionOrder, newCompletionOrder);
+      await persistKey(STORAGE_KEYS.exerciseHistory, importedHistory);
     } else {
-      const mergedProgress: WorkoutProgress = { ...progress };
-      const mergedAnnotations: WorkoutAnnotations = { ...annotations };
-      const mergedRpeValues: WorkoutRPEValues = { ...rpeValues };
-      const mergedLoadValues: WorkoutLoadValues = { ...loadValues };
-      const mergedLoadUnits: WorkoutLoadUnits = { ...loadUnits };
+      // Merge mode: prefer imported values when present, fall back to existing state
+      const mergedProgress: WorkoutProgress = {};
+      const mergedAnnotations: WorkoutAnnotations = {};
+      const mergedRpeValues: WorkoutRPEValues = {};
+      const mergedLoadValues: WorkoutLoadValues = {};
+      const mergedLoadUnits: WorkoutLoadUnits = {};
+      const mergedDoneStatus: WorkoutDoneStatus = {};
+      const newCompletionOrder: string[] = [];
+      const existingMergedIds = new Set<string>();
 
-      normalizedWorkouts.forEach((newWorkout) => {
+      normalizedWorkouts.forEach((newWorkout, index) => {
         const existingWorkout = workouts.find(
           (w) => w.week === newWorkout.week &&
             w.day === newWorkout.day &&
             w.exercise === newWorkout.exercise,
         );
 
+        const oldImportId = data.workouts[index]?.id;
+
         if (existingWorkout) {
-          mergedProgress[newWorkout.id] = progress[existingWorkout.id] || [];
-          mergedAnnotations[newWorkout.id] = annotations[existingWorkout.id] || '';
+          existingMergedIds.add(newWorkout.id);
+
+          const importedProg = oldImportId ? importedProgress[oldImportId] : undefined;
+          mergedProgress[newWorkout.id] = (importedProg && importedProg.length > 0)
+            ? importedProg
+            : (progress[existingWorkout.id] || []);
+
+          const importedAnnotation = oldImportId ? importedAnnotations[oldImportId] : undefined;
+          mergedAnnotations[newWorkout.id] = (importedAnnotation?.trim() ? importedAnnotation : '')
+            || (annotations[existingWorkout.id] || '');
+
+          const importedDone = oldImportId ? importedDoneStatus[oldImportId] : undefined;
+          mergedDoneStatus[newWorkout.id] = importedDone || doneStatus[existingWorkout.id];
+
           mergedRpeValues[newWorkout.id] = rpeValues[existingWorkout.id] || '-';
           mergedLoadValues[newWorkout.id] = loadValues[existingWorkout.id] || '';
           mergedLoadUnits[newWorkout.id] = loadUnits[existingWorkout.id] || normalizeLoadUnit(newWorkout.load_unit);
+
+          // Remap completionOrder
+          if (completionOrder.includes(existingWorkout.id)) {
+            newCompletionOrder.push(newWorkout.id);
+          }
+          if (importedDone === 'undone' && !newCompletionOrder.includes(newWorkout.id)) {
+            newCompletionOrder.push(newWorkout.id);
+          }
+        } else {
+          // No existing match — use data from the CSV import
+          if (oldImportId && importedProgress[oldImportId]) {
+            mergedProgress[newWorkout.id] = importedProgress[oldImportId];
+          }
+          if (oldImportId && importedAnnotations[oldImportId]) {
+            mergedAnnotations[newWorkout.id] = importedAnnotations[oldImportId];
+          }
+          if (oldImportId && importedDoneStatus[oldImportId]) {
+            mergedDoneStatus[newWorkout.id] = importedDoneStatus[oldImportId];
+          }
+          mergedRpeValues[newWorkout.id] = '-';
+          mergedLoadValues[newWorkout.id] = '';
+          mergedLoadUnits[newWorkout.id] = normalizeLoadUnit(newWorkout.load_unit);
+
+          if (mergedDoneStatus[newWorkout.id] === 'undone') {
+            newCompletionOrder.push(newWorkout.id);
+          }
         }
+
         if (newWorkout.load_unit_selected) {
           mergedLoadUnits[newWorkout.id] = newWorkout.load_unit_selected;
         }
+      });
+
+      // Also add workouts where all progress sets are checked to completionOrder
+      normalizedWorkouts.forEach((w) => {
+        if (!newCompletionOrder.includes(w.id)) {
+          const prog = mergedProgress[w.id];
+          if (prog && prog.length > 0 && prog.every(Boolean)) {
+            newCompletionOrder.push(w.id);
+          }
+        }
+      });
+
+      const importCompletedAt = new Date().toISOString();
+      const mergedHistory = buildImportedExerciseHistory({
+        workouts: normalizedWorkouts,
+        progress: mergedProgress,
+        annotations: mergedAnnotations,
+        rpeValues: mergedRpeValues,
+        loadValues: mergedLoadValues,
+        loadUnits: mergedLoadUnits,
+        doneStatus: mergedDoneStatus,
+        baseHistory: exerciseHistory,
+        completedAt: importCompletedAt,
+        skipWorkoutIds: existingMergedIds,
       });
 
       setWorkouts(normalizedWorkouts);
@@ -505,14 +710,20 @@ export const useWorkoutStorage = () => {
       setRpeValues(mergedRpeValues);
       setLoadValues(mergedLoadValues);
       setLoadUnits(mergedLoadUnits);
+      setDoneStatus(mergedDoneStatus);
+      setCompletionOrder(newCompletionOrder);
+      setExerciseHistory(mergedHistory);
       await persistKey(STORAGE_KEYS.data, normalizedWorkouts);
       await persistKey(STORAGE_KEYS.progress, mergedProgress);
       await persistKey(STORAGE_KEYS.annotations, mergedAnnotations);
       await persistKey(STORAGE_KEYS.rpeValues, mergedRpeValues);
       await persistKey(STORAGE_KEYS.loadValues, mergedLoadValues);
       await persistKey(STORAGE_KEYS.loadUnits, mergedLoadUnits);
+      await persistKey(STORAGE_KEYS.doneStatus, mergedDoneStatus);
+      await persistKey(STORAGE_KEYS.completionOrder, newCompletionOrder);
+      await persistKey(STORAGE_KEYS.exerciseHistory, mergedHistory);
     }
-  }, [workouts, progress, annotations, rpeValues, loadValues, loadUnits]);
+  }, [workouts, progress, annotations, rpeValues, loadValues, loadUnits, doneStatus, completionOrder]);
 
   const exportWorkouts = useCallback(async (): Promise<string> => {
     const [
@@ -522,6 +733,7 @@ export const useWorkoutStorage = () => {
       storedRpeValues,
       storedLoadValues,
       storedLoadUnits,
+      storedDoneStatus,
     ] = await Promise.all([
       storageRepository.get<WorkoutRaw[]>(STORAGE_KEYS.data),
       storageRepository.get<WorkoutProgress>(STORAGE_KEYS.progress),
@@ -529,6 +741,7 @@ export const useWorkoutStorage = () => {
       storageRepository.get<WorkoutRPEValues>(STORAGE_KEYS.rpeValues),
       storageRepository.get<WorkoutLoadValues>(STORAGE_KEYS.loadValues),
       storageRepository.get<WorkoutLoadUnits>(STORAGE_KEYS.loadUnits),
+      storageRepository.get<WorkoutDoneStatus>(STORAGE_KEYS.doneStatus),
     ]);
 
     const exportData: ExportData = {
@@ -538,12 +751,13 @@ export const useWorkoutStorage = () => {
       rpeValues: storedRpeValues ?? rpeValues,
       loadValues: storedLoadValues ?? loadValues,
       loadUnits: storedLoadUnits ?? loadUnits,
+      doneStatus: storedDoneStatus ?? doneStatus,
     };
 
     const csvContent = generateExportData(exportData);
     const filePath = await saveCsvFile(csvContent);
     return filePath;
-  }, [workouts, progress, annotations, rpeValues, loadValues, loadUnits]);
+  }, [workouts, progress, annotations, rpeValues, loadValues, loadUnits, doneStatus]);
 
   const clearData = useCallback(async () => {
     await storageRepository.clearKeys([

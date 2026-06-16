@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { ChevronDown } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { OneRmMovementId, OneRmValues } from '../types';
@@ -6,6 +6,8 @@ import { OneRmMovementId, OneRmValues } from '../types';
 interface OneRmSectionProps {
   values: OneRmValues;
   onChangeValue: (id: OneRmMovementId, value: string) => void;
+  expanded: Record<string, boolean>;
+  onToggleExpanded: (id: string) => void;
 }
 
 interface MovementDefinition {
@@ -43,17 +45,8 @@ const PercentRow: React.FC<{ label: string; value: string }> = ({ label, value }
   </div>
 );
 
-export const OneRmSection: React.FC<OneRmSectionProps> = ({ values, onChangeValue }) => {
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({
-    squat: false,
-    bench: false,
-    deadlift: false
-  });
+export const OneRmSection: React.FC<OneRmSectionProps> = ({ values, onChangeValue, expanded, onToggleExpanded }) => {
   const { t } = useTranslation();
-
-  const handleToggle = (id: string) => {
-    setExpanded((previous) => ({ ...previous, [id]: !previous[id] }));
-  };
 
   return (
     <div className="space-y-4">
@@ -75,7 +68,7 @@ export const OneRmSection: React.FC<OneRmSectionProps> = ({ values, onChangeValu
           >
             <button
               type="button"
-              onClick={() => handleToggle(movement.id)}
+              onClick={() => onToggleExpanded(movement.id)}
               className="w-full px-4 py-3 flex items-center justify-between bg-gym-900/80 hover:bg-gym-800/70 transition-colors"
             >
               <div>

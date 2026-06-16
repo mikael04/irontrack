@@ -1,13 +1,13 @@
 import React, { useRef, useState } from 'react';
 import { Upload, FileSpreadsheet, AlertCircle, FileText, Clipboard, RefreshCw, Merge } from 'lucide-react';
 import { parseCSV } from '../utils/csv';
-import { WorkoutRaw, ImportMode } from '../types';
+import { ParsedImportData, ImportMode } from '../types';
 import { Capacitor } from '@capacitor/core';
 import { FilePicker } from '@capawesome/capacitor-file-picker';
 import { useTranslation } from 'react-i18next';
 
 interface ImportScreenProps {
-  onImport: (data: WorkoutRaw[], mode: ImportMode) => void;
+  onImport: (data: ParsedImportData, mode: ImportMode) => void;
   hasExistingWorkouts: boolean;
 }
 
@@ -33,7 +33,7 @@ export const ImportScreen: React.FC<ImportScreenProps> = ({ onImport, hasExistin
   const [isProcessing, setIsProcessing] = useState(false);
   const [showPasteModal, setShowPasteModal] = useState(false);
   const [pasteContent, setPasteContent] = useState('');
-  const [pendingData, setPendingData] = useState<WorkoutRaw[] | null>(null);
+  const [pendingData, setPendingData] = useState<ParsedImportData | null>(null);
   const [showMergeModal, setShowMergeModal] = useState(false);
   const { t } = useTranslation();
 
@@ -42,7 +42,7 @@ export const ImportScreen: React.FC<ImportScreenProps> = ({ onImport, hasExistin
     setIsProcessing(true);
     try {
       const data = await parseCSV(input);
-      if (data.length === 0) {
+      if (data.workouts.length === 0) {
         setError('No valid exercises found. Please check your CSV headers (Semana, Dia, Exercício...).');
       } else if (hasExistingWorkouts) {
         setPendingData(data);
