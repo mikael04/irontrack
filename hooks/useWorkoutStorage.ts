@@ -174,119 +174,167 @@ export const useWorkoutStorage = () => {
   const [doneStatus, setDoneStatus] = useState<WorkoutDoneStatus>({});
   const [isLoaded, setIsLoaded] = useState(false);
 
-  useEffect(() => {
-    const loadStorage = async () => {
-      try {
-        await storageRepository.init();
+  const loadStorage = useCallback(async () => {
+    try {
+      await storageRepository.init();
 
-        const [
-          storedData,
-          storedProgress,
-          storedAnnotations,
-          storedRpeValues,
-          storedLoadValues,
-          storedLoadUnits,
-          storedOrder,
-          storedSelection,
-          storedViewMode,
-          storedExerciseHistory,
-          storedOneRmValues,
-          storedDoneStatus,
-        ] = await Promise.all([
-          storageRepository.get<WorkoutRaw[]>(STORAGE_KEYS.data),
-          storageRepository.get<WorkoutProgress>(STORAGE_KEYS.progress),
-          storageRepository.get<WorkoutAnnotations>(STORAGE_KEYS.annotations),
-          storageRepository.get<WorkoutRPEValues>(STORAGE_KEYS.rpeValues),
-          storageRepository.get<WorkoutLoadValues>(STORAGE_KEYS.loadValues),
-          storageRepository.get<WorkoutLoadUnits>(STORAGE_KEYS.loadUnits),
-          storageRepository.get<string[]>(STORAGE_KEYS.completionOrder),
-          storageRepository.get<SelectionState>(STORAGE_KEYS.selection),
-          storageRepository.get<ViewMode>(STORAGE_KEYS.viewMode),
-          storageRepository.get<ExerciseHistoryMap>(STORAGE_KEYS.exerciseHistory),
-          storageRepository.get<OneRmValues>(STORAGE_KEYS.oneRmValues),
-          storageRepository.get<WorkoutDoneStatus>(STORAGE_KEYS.doneStatus),
-        ]);
+      const [
+        storedData,
+        storedProgress,
+        storedAnnotations,
+        storedRpeValues,
+        storedLoadValues,
+        storedLoadUnits,
+        storedOrder,
+        storedSelection,
+        storedViewMode,
+        storedExerciseHistory,
+        storedOneRmValues,
+        storedDoneStatus,
+      ] = await Promise.all([
+        storageRepository.get<WorkoutRaw[]>(STORAGE_KEYS.data),
+        storageRepository.get<WorkoutProgress>(STORAGE_KEYS.progress),
+        storageRepository.get<WorkoutAnnotations>(STORAGE_KEYS.annotations),
+        storageRepository.get<WorkoutRPEValues>(STORAGE_KEYS.rpeValues),
+        storageRepository.get<WorkoutLoadValues>(STORAGE_KEYS.loadValues),
+        storageRepository.get<WorkoutLoadUnits>(STORAGE_KEYS.loadUnits),
+        storageRepository.get<string[]>(STORAGE_KEYS.completionOrder),
+        storageRepository.get<SelectionState>(STORAGE_KEYS.selection),
+        storageRepository.get<ViewMode>(STORAGE_KEYS.viewMode),
+        storageRepository.get<ExerciseHistoryMap>(STORAGE_KEYS.exerciseHistory),
+        storageRepository.get<OneRmValues>(STORAGE_KEYS.oneRmValues),
+        storageRepository.get<WorkoutDoneStatus>(STORAGE_KEYS.doneStatus),
+      ]);
 
-        if (storedData) {
-          const normalizedWorkouts = storedData.map(normalizeWorkout);
-          setWorkouts(normalizedWorkouts);
-          void persistKey(STORAGE_KEYS.data, normalizedWorkouts);
-        }
-        if (storedProgress) {
-          setProgress(storedProgress);
-        }
-        if (storedAnnotations) {
-          setAnnotations(storedAnnotations);
-        }
-        if (storedRpeValues) {
-          setRpeValues(storedRpeValues);
-        }
-        if (storedLoadValues) {
-          setLoadValues(storedLoadValues);
-        }
-        if (storedLoadUnits) {
-          const normalizedUnits: WorkoutLoadUnits = Object.entries(storedLoadUnits).reduce((acc, [key, value]) => {
-            acc[key] = normalizeLoadUnit(value as string);
-            return acc;
-          }, {} as WorkoutLoadUnits);
-          setLoadUnits(normalizedUnits);
-          void persistKey(STORAGE_KEYS.loadUnits, normalizedUnits);
-        }
-        if (storedOrder) {
-          setCompletionOrder(storedOrder);
-        }
-        if (storedSelection) {
-          setSelection(storedSelection);
-        }
-        if (storedViewMode === 'classic' || storedViewMode === 'ontrain') {
-          setViewModeState(storedViewMode);
-        }
-        if (storedExerciseHistory && typeof storedExerciseHistory === 'object') {
-          const normalizedHistory: ExerciseHistoryMap = Object.entries(storedExerciseHistory).reduce((acc, [key, value]) => {
-            if (!Array.isArray(value)) return acc;
-
-            const normalizedEntries = (value as ExerciseHistoryEntry[])
-              .map((entry) => ({
-                ...entry,
-                loadUnit: normalizeLoadUnit(entry.loadUnit),
-              }))
-              .filter((entry) => Boolean(entry.exerciseNameKey && entry.completedAt));
-
-            if (normalizedEntries.length > 0) {
-              acc[key] = normalizedEntries;
-            }
-
-            return acc;
-          }, {} as ExerciseHistoryMap);
-          setExerciseHistory(normalizedHistory);
-          void persistKey(STORAGE_KEYS.exerciseHistory, normalizedHistory);
-        }
-
-        if (storedOneRmValues) {
-          setOneRmValues({
-            squat: storedOneRmValues.squat ?? '',
-            bench: storedOneRmValues.bench ?? '',
-            deadlift: storedOneRmValues.deadlift ?? '',
-          });
-        }
-        if (storedDoneStatus && typeof storedDoneStatus === 'object') {
-          const cleaned: WorkoutDoneStatus = {};
-          Object.entries(storedDoneStatus).forEach(([key, value]) => {
-            if (value === 'done' || value === 'undone') {
-              cleaned[key] = value;
-            }
-          });
-          setDoneStatus(cleaned);
-        }
-      } catch (e) {
-        console.error('Failed to load workout data', e);
-      } finally {
-        setIsLoaded(true);
+      if (storedData) {
+        const normalizedWorkouts = storedData.map(normalizeWorkout);
+        setWorkouts(normalizedWorkouts);
+        void persistKey(STORAGE_KEYS.data, normalizedWorkouts);
+      } else {
+        setWorkouts([]);
       }
+
+      if (storedProgress) {
+        setProgress(storedProgress);
+      } else {
+        setProgress({});
+      }
+
+      if (storedAnnotations) {
+        setAnnotations(storedAnnotations);
+      } else {
+        setAnnotations({});
+      }
+
+      if (storedRpeValues) {
+        setRpeValues(storedRpeValues);
+      } else {
+        setRpeValues({});
+      }
+
+      if (storedLoadValues) {
+        setLoadValues(storedLoadValues);
+      } else {
+        setLoadValues({});
+      }
+
+      if (storedLoadUnits) {
+        const normalizedUnits: WorkoutLoadUnits = Object.entries(storedLoadUnits).reduce((acc, [key, value]) => {
+          acc[key] = normalizeLoadUnit(value as string);
+          return acc;
+        }, {} as WorkoutLoadUnits);
+        setLoadUnits(normalizedUnits);
+        void persistKey(STORAGE_KEYS.loadUnits, normalizedUnits);
+      } else {
+        setLoadUnits({});
+      }
+
+      if (storedOrder) {
+        setCompletionOrder(storedOrder);
+      } else {
+        setCompletionOrder([]);
+      }
+
+      if (storedSelection) {
+        setSelection(storedSelection);
+      } else {
+        setSelection({ week: null, day: null });
+      }
+
+      if (storedViewMode === 'classic' || storedViewMode === 'ontrain') {
+        setViewModeState(storedViewMode);
+      } else {
+        setViewModeState('classic');
+      }
+
+      if (storedExerciseHistory && typeof storedExerciseHistory === 'object') {
+        const normalizedHistory: ExerciseHistoryMap = Object.entries(storedExerciseHistory).reduce((acc, [key, value]) => {
+          if (!Array.isArray(value)) return acc;
+
+          const normalizedEntries = (value as ExerciseHistoryEntry[])
+            .map((entry) => ({
+              ...entry,
+              loadUnit: normalizeLoadUnit(entry.loadUnit),
+            }))
+            .filter((entry) => Boolean(entry.exerciseNameKey && entry.completedAt));
+
+          if (normalizedEntries.length > 0) {
+            acc[key] = normalizedEntries;
+          }
+
+          return acc;
+        }, {} as ExerciseHistoryMap);
+        setExerciseHistory(normalizedHistory);
+        void persistKey(STORAGE_KEYS.exerciseHistory, normalizedHistory);
+      } else {
+        setExerciseHistory({});
+      }
+
+      if (storedOneRmValues) {
+        setOneRmValues({
+          squat: storedOneRmValues.squat ?? '',
+          bench: storedOneRmValues.bench ?? '',
+          deadlift: storedOneRmValues.deadlift ?? '',
+        });
+      } else {
+        setOneRmValues(DEFAULT_ONE_RM_VALUES);
+      }
+
+      if (storedDoneStatus && typeof storedDoneStatus === 'object') {
+        const cleaned: WorkoutDoneStatus = {};
+        Object.entries(storedDoneStatus).forEach(([key, value]) => {
+          if (value === 'done' || value === 'undone') {
+            cleaned[key] = value;
+          }
+        });
+        setDoneStatus(cleaned);
+      } else {
+        setDoneStatus({});
+      }
+    } catch (e) {
+      console.error('Failed to load workout data', e);
+    } finally {
+      setIsLoaded(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadStorage();
+
+    const handleDataRestored = () => {
+      void loadStorage();
     };
 
-    void loadStorage();
-  }, []);
+    if (typeof window !== 'undefined') {
+      window.addEventListener('irontrack:data-restored', handleDataRestored);
+    }
+
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('irontrack:data-restored', handleDataRestored);
+      }
+    };
+  }, [loadStorage]);
 
   const toggleSet = useCallback((workoutId: string, setIndex: number, totalSets: number) => {
     setProgress((prev) => {
@@ -812,6 +860,7 @@ export const useWorkoutStorage = () => {
     saveSelection,
     importWorkouts,
     exportWorkouts,
+    reloadStorage: loadStorage,
     clearData,
   };
 };

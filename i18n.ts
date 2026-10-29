@@ -61,7 +61,26 @@ const resources = {
             "last_session_no_comment": "No comment.",
             "last_sessions": "Last Time Did",
             "mark_not_done": "Mark as not done",
-            "skipped": "Skipped"
+            "skipped": "Skipped",
+            "google_sync": "Cloud Sync (Google Sheets)",
+            "google_sync_desc": "Sync with Google Sheets and save backups to your Google Drive",
+            "google_sync_title": "Google Sheets & Drive Sync",
+            "google_sync_subtitle": "Cloud backup and online spreadsheet in your personal Google account",
+            "sync_last_done": "Last synchronization completed successfully",
+            "sync_never_synced": "No cloud sync performed yet on this device.",
+            "sync_webhook_url_label": "Webhook URL (Google Apps Script)",
+            "sync_webhook_help_tip": "Zero cost, no Google Cloud Console, runs directly on your Google account.",
+            "test_connection": "Test Connection",
+            "testing": "Testing...",
+            "how_to_setup": "Setup Guide",
+            "sync_now_button": "Sync to Google Sheets",
+            "syncing": "Syncing to Google Sheets...",
+            "restore_now_button": "Restore from Google Sheets",
+            "restoring": "Restoring from Google Drive...",
+            "guide_title": "How to Configure Google Sheets",
+            "sync_confirm_restore": "Do you want to restore data saved in Google Drive? Current training data will be updated from your backup.",
+            "sync_err_no_url": "Please provide the Google Apps Script Webhook URL.",
+            "restore_from_cloud": "Restore from Cloud"
         }
     },
     'pt-BR': {
@@ -123,7 +142,26 @@ const resources = {
             "last_session_no_comment": "Sem comentário.",
             "last_sessions": "Últimas Vezes",
             "mark_not_done": "Marcar como não feito",
-            "skipped": "Pulado"
+            "skipped": "Pulado",
+            "google_sync": "Sincronização Nuvem (Google Sheets)",
+            "google_sync_desc": "Sincronize com o Google Sheets e salve backups no seu Google Drive",
+            "google_sync_title": "Sincronização Google Sheets & Drive",
+            "google_sync_subtitle": "Backup na nuvem e planilha online na sua conta pessoal do Google",
+            "sync_last_done": "Última sincronização realizada com sucesso",
+            "sync_never_synced": "Nenhuma sincronização na nuvem realizada ainda neste aparelho.",
+            "sync_webhook_url_label": "URL do Webhook (Google Apps Script)",
+            "sync_webhook_help_tip": "Custo zero, sem Google Cloud Console, executado no seu próprio Google Drive.",
+            "test_connection": "Testar Conexão",
+            "testing": "Testando...",
+            "how_to_setup": "Como Configurar",
+            "sync_now_button": "Sincronizar com Google Sheets",
+            "syncing": "Sincronizando com Google Sheets...",
+            "restore_now_button": "Restaurar do Google Sheets",
+            "restoring": "Restaurando dados do Google Drive...",
+            "guide_title": "Como Configurar o Google Sheets",
+            "sync_confirm_restore": "Deseja restaurar os dados salvos na nuvem do Google? Os dados do seu treino atual serão atualizados com o backup salvo no Google Drive.",
+            "sync_err_no_url": "Por favor, informe a URL do Webhook do Google Apps Script.",
+            "restore_from_cloud": "Restaurar da Nuvem"
         }
     }
 };

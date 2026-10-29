@@ -8,7 +8,8 @@ It was built primarily using LLM-assisted "vibe coding," even though I use React
 
 ## Features
 
-- Import training plans from TSV/CSV files
+- **Cloud Sync with Google Sheets & Google Drive:** Zero-cost webhook integration via Google Apps Script running on your personal Google account. Generates formatted spreadsheets with 4 tabs (*Treinos Atuais*, *Histórico de Treinos*, *1RM & Percentuais*, *Resumo & Metadados*) and saves full JSON backups (`irontrack_sync_backup.json`) with cross-device restore support.
+- Import training plans from TSV/CSV files and raw text paste
 - Export training plans with progress, status and annotations
 - Track sets per exercise with tap-to-toggle indicators
 - Mark exercises as skipped when you don't do them
@@ -18,6 +19,13 @@ It was built primarily using LLM-assisted "vibe coding," even though I use React
 - 1RM calculator section for squat, bench and deadlift
 - Persistent storage on Android via SQLite (Preferences fallback for web/dev)
 - Portuguese and English UI
+
+## Versioning & Changelog Convention
+
+IronTrack follows [Keep a Changelog](https://keepachangelog.com/) and [Semantic Versioning](https://semver.org/):
+- **Minor Versions (`+0.1`)**: Incremented for new feature modules, visual revamp, or major architectural changes (e.g. `0.1.0` -> `0.2.0` -> `0.3.0` -> `0.4.0` -> `0.5.0`).
+- **Patch / Bugfix Versions (`+0.0.1`)**: Incremented for bug fixes, tweaks, and maintenance improvements (e.g. `0.4.1`, `0.5.1`, `0.5.2`).
+- **Current Version:** `0.5.2`.
 
 ## Tech Stack
 
@@ -119,13 +127,15 @@ The app imports tab-separated values (TSV) with the following columns. A UTF-8 B
 
 ## Scripts
 
-| Script              | Description                   |
-| ------------------- | ----------------------------- |
-| `npm run dev`       | Start Vite development server |
-| `npm run build`     | Build production web assets   |
-| `npm run preview`   | Preview the production build  |
-| `npm run android`   | Sync and open Android Studio  |
-| `npm run build:apk` | Build a debug APK             |
+| Script                  | Description                                            |
+| ----------------------- | ------------------------------------------------------ |
+| `npm run dev`           | Start Vite development server                          |
+| `npm run build`         | Build production web assets                            |
+| `npm run preview`       | Preview the production build                           |
+| `npm run android`       | Sync and open Android Studio                           |
+| `npm run build:apk`     | Compile Android release APK via Gradle                 |
+| `npm run build:android` | Full build and compile release APK                     |
+| `npm run install:android` | Install latest release APK on device via ADB         |
 
 ## License
 

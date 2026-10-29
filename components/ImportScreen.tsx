@@ -1,10 +1,11 @@
 import React, { useRef, useState } from 'react';
-import { Upload, FileSpreadsheet, AlertCircle, FileText, Clipboard, RefreshCw, Merge } from 'lucide-react';
+import { Upload, FileSpreadsheet, AlertCircle, FileText, Clipboard, RefreshCw, Merge, Cloud } from 'lucide-react';
 import { parseCSV } from '../utils/csv';
 import { ParsedImportData, ImportMode } from '../types';
 import { Capacitor } from '@capacitor/core';
 import { FilePicker } from '@capawesome/capacitor-file-picker';
 import { useTranslation } from 'react-i18next';
+import { GoogleSyncModal } from './GoogleSyncModal';
 
 interface ImportScreenProps {
   onImport: (data: ParsedImportData, mode: ImportMode) => void;
@@ -35,6 +36,7 @@ export const ImportScreen: React.FC<ImportScreenProps> = ({ onImport, hasExistin
   const [pasteContent, setPasteContent] = useState('');
   const [pendingData, setPendingData] = useState<ParsedImportData | null>(null);
   const [showMergeModal, setShowMergeModal] = useState(false);
+  const [showGoogleSyncModal, setShowGoogleSyncModal] = useState(false);
   const { t } = useTranslation();
 
   const processImport = async (input: File | string) => {
@@ -193,14 +195,24 @@ export const ImportScreen: React.FC<ImportScreenProps> = ({ onImport, hasExistin
         <div className="flex-grow h-px bg-gym-800"></div>
       </div>
 
-      {/* Paste Option (Fail-safe) */}
-      <button
-        onClick={() => setShowPasteModal(true)}
-        className="shrink-0 flex items-center space-x-2 text-gym-400 hover:text-white transition-colors bg-gym-800/50 px-6 py-3 rounded-xl border border-gym-700 hover:border-gym-600 mb-8"
-      >
-        <Clipboard size={18} />
-        <span>Paste CSV Text Directly</span>
-      </button>
+      {/* Paste & Cloud Restore Options */}
+      <div className="flex flex-col sm:flex-row gap-3 mb-8 shrink-0 w-full max-w-md justify-center">
+        <button
+          onClick={() => setShowPasteModal(true)}
+          className="flex-1 flex items-center justify-center space-x-2 text-gym-400 hover:text-white transition-colors bg-gym-800/50 px-4 py-3 rounded-xl border border-gym-700 hover:border-gym-600"
+        >
+          <Clipboard size={18} />
+          <span>Paste CSV Text</span>
+        </button>
+
+        <button
+          onClick={() => setShowGoogleSyncModal(true)}
+          className="flex-1 flex items-center justify-center space-x-2 text-gym-accent hover:text-emerald-300 transition-colors bg-gym-800/50 px-4 py-3 rounded-xl border border-gym-700 hover:border-gym-accent/50"
+        >
+          <Cloud size={18} />
+          <span>{t('restore_from_cloud', 'Restaurar da Nuvem')}</span>
+        </button>
+      </div>
 
       {/* Processing State */}
       {isProcessing && (
@@ -341,6 +353,11 @@ export const ImportScreen: React.FC<ImportScreenProps> = ({ onImport, hasExistin
           </div>
         </div>
       )}
+
+      <GoogleSyncModal
+        isOpen={showGoogleSyncModal}
+        onClose={() => setShowGoogleSyncModal(false)}
+      />
     </div>
   );
 };

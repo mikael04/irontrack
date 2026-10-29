@@ -20,6 +20,9 @@ export const STORAGE_KEYS = {
   exerciseHistory: 'irontrack_exercise_history',
   oneRmValues: 'irontrack_one_rm_values',
   doneStatus: 'irontrack_done_status',
+  googleWebhookUrl: 'irontrack_google_webhook_url',
+  lastSyncTimestamp: 'irontrack_last_sync_timestamp',
+  lastSyncSummary: 'irontrack_last_sync_summary',
 } as const;
 
 export const LEGACY_PREFERENCES_KEYS: string[] = [
@@ -35,6 +38,9 @@ export const LEGACY_PREFERENCES_KEYS: string[] = [
   STORAGE_KEYS.exerciseHistory,
   STORAGE_KEYS.oneRmValues,
   STORAGE_KEYS.doneStatus,
+  STORAGE_KEYS.googleWebhookUrl,
+  STORAGE_KEYS.lastSyncTimestamp,
+  STORAGE_KEYS.lastSyncSummary,
 ];
 
 class StorageRepository {

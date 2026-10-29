@@ -14,6 +14,7 @@ import {
 } from '../types';
 import { ExerciseCard } from './ExerciseCard';
 import { OneRmSection } from './OneRmSection';
+import { GoogleSyncModal } from './GoogleSyncModal';
 import {
   Settings,
   Trophy,
@@ -22,6 +23,7 @@ import {
   Upload,
   X,
   Globe,
+  Cloud,
   ToggleLeft,
   ToggleRight,
   ChevronRight,
@@ -109,6 +111,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [activeTimerWorkoutId, setActiveTimerWorkoutId] = useState<string | null>(null);
   const [timerStartTime, setTimerStartTime] = useState<number | null>(null);
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
+  const [showGoogleSyncModal, setShowGoogleSyncModal] = useState(false);
   const [showOneRm, setShowOneRm] = useState(false);
   const [oneRmExpanded, setOneRmExpanded] = useState<Record<string, boolean>>({
     squat: false,
@@ -1016,6 +1019,26 @@ export const Dashboard: React.FC<DashboardProps> = ({
               </button>
 
               <button
+                onClick={() => {
+                  setShowSettingsMenu(false);
+                  setShowGoogleSyncModal(true);
+                }}
+                className="w-full p-4 rounded-xl border border-gym-700 hover:border-gym-accent hover:bg-gym-accent/5 transition-all text-left group"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="bg-gym-800 p-2 rounded-lg group-hover:bg-gym-accent/20 transition-colors">
+                    <Cloud size={18} className="text-gym-400 group-hover:text-gym-accent" />
+                  </div>
+                  <div>
+                    <div className="font-semibold text-white mb-1">{t('google_sync')}</div>
+                    <div className="text-xs text-gym-500">
+                      {t('google_sync_desc')}
+                    </div>
+                  </div>
+                </div>
+              </button>
+
+              <button
                 onClick={async () => {
                   setShowSettingsMenu(false);
                   try {
@@ -1066,6 +1089,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </div>
         </div>
       )}
+
+      <GoogleSyncModal
+        isOpen={showGoogleSyncModal}
+        onClose={() => setShowGoogleSyncModal(false)}
+      />
     </div>
   );
 };

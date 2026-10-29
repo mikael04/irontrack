@@ -1,14 +1,16 @@
 {
   "name": "irontrack",
   "private": true,
-  "version": "0.5.1",
+  "version": "0.5.2",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
     "android": "npx cap sync && npx cap open android",
-    "build:apk": "npm run build && npx cap sync && cd android && ./gradlew assembleDebug"
+    "build:apk": "bash scripts/build_android_apk.sh",
+    "build:android": "bash scripts/build_android_apk.sh",
+    "install:android": "bash scripts/install_apk_adb.sh"
   },
   "dependencies": {
     "@capacitor-community/sqlite": "^6.0.2",
